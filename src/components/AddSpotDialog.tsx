@@ -14,9 +14,12 @@ interface AddSpotDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const BLOCKED_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'aol.com', 'icloud.com', 'me.com', 'mail.com', 'protonmail.com', 'zoho.com'];
+
 const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [step, setStep] = useState<'signup' | 'verify' | 'form'>('signup');
   const [email, setEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
   const [name, setName] = useState('');
   const [category, setCategory] = useState<SpotCategory | ''>('');
   const [address, setAddress] = useState('');
@@ -25,18 +28,37 @@ const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
 
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.endsWith('.se') && !email.endsWith('.edu')) {
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain || BLOCKED_DOMAINS.includes(domain)) {
       toast({
-        title: 'University email required',
-        description: 'Please use your university email (e.g. name@kth.se) to sign up.',
+        title: 'Personal email not allowed',
+        description: 'Please use your university or work email (e.g. name@kth.se, name@company.com).',
         variant: 'destructive',
       });
       return;
     }
-    setIsLoggedIn(true);
+    setStep('verify');
     toast({
-      title: 'Welcome to Spotter! 🎓',
-      description: 'You can now recommend spots to fellow students.',
+      title: 'Verification code sent! 📧',
+      description: `Check your inbox at ${email} for a 6-digit code.`,
+    });
+  };
+
+  const handleVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    // MVP: accept any 6-digit code
+    if (verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
+      toast({
+        title: 'Invalid code',
+        description: 'Please enter the 6-digit code sent to your email.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setStep('form');
+    toast({
+      title: 'Email verified! 🎓',
+      description: 'Welcome to Spotter — start recommending spots.',
     });
   };
 
@@ -56,17 +78,17 @@ const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {!isLoggedIn ? (
+        {step === 'signup' ? (
           <>
             <DialogHeader>
               <DialogTitle className="font-display text-lg">Sign up to add a spot</DialogTitle>
               <DialogDescription>
-                Use your university email to join Spotter and start recommending places.
+                Use your university or work email to join Spotter.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-email">University Email</Label>
+                <Label htmlFor="signup-email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -80,12 +102,41 @@ const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Only .se and .edu university emails are accepted.
+                  University & work emails accepted (KTH, SU, SSE, etc.). No personal emails (Gmail, Yahoo…).
                 </p>
               </div>
               <Button type="submit" className="w-full gap-2 bg-gradient-hero">
                 Sign Up & Continue <ArrowRight className="h-4 w-4" />
               </Button>
+            </form>
+          </>
+        ) : step === 'verify' ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-display text-lg">Verify your email</DialogTitle>
+              <DialogDescription>
+                We sent a 6-digit code to <strong>{email}</strong>
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleVerify} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="verify-code">Verification Code</Label>
+                <Input
+                  id="verify-code"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  placeholder="123456"
+                  maxLength={6}
+                  className="text-center text-lg tracking-widest"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full gap-2 bg-gradient-hero">
+                Verify <ArrowRight className="h-4 w-4" />
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Didn't get the code? Check spam or <button type="button" className="underline" onClick={() => setStep('signup')}>try another email</button>.
+              </p>
             </form>
           </>
         ) : (
