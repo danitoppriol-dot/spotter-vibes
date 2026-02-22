@@ -6,8 +6,9 @@ import SpotDetail from '@/components/SpotDetail';
 import AddSpotDialog from '@/components/AddSpotDialog';
 import TrendingSpots from '@/components/TrendingSpots';
 import Navbar from '@/components/Navbar';
-import { Search } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const Explore = () => {
   const [activeCategories, setActiveCategories] = useState<SpotCategory[]>(
@@ -16,6 +17,7 @@ const Explore = () => {
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mapCenter, setMapCenter] = useState<[number, number]>([59.3293, 18.0686]);
+  const [addSpotOpen, setAddSpotOpen] = useState(false);
 
   const toggleCategory = (cat: SpotCategory) => {
     setActiveCategories((prev) =>
@@ -55,7 +57,9 @@ const Explore = () => {
               />
             </div>
             <LayerFilter activeCategories={activeCategories} onToggle={toggleCategory} />
-            <AddSpotDialog />
+            <Button className="gap-2 bg-gradient-hero shadow-glow" onClick={() => setAddSpotOpen(true)}>
+              <Plus className="h-4 w-4" /> Add Spot
+            </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 pt-0">
             <TrendingSpots spots={filteredSpots} onSpotClick={handleSpotClick} />
@@ -77,17 +81,28 @@ const Explore = () => {
                 className="bg-card/90 pl-9 shadow-elevated backdrop-blur-md"
               />
             </div>
-            <AddSpotDialog />
+            <Button className="gap-2 bg-gradient-hero shadow-glow" onClick={() => setAddSpotOpen(true)}>
+              <Plus className="h-4 w-4" /> Add Spot
+            </Button>
           </div>
         </div>
 
         {/* Map */}
         <main className="relative flex-1">
           <MapView spots={filteredSpots} onSpotClick={handleSpotClick} center={mapCenter} />
+          {/* Floating + button on map */}
+          <Button
+            onClick={() => setAddSpotOpen(true)}
+            className="absolute right-4 top-4 z-10 h-12 w-12 rounded-full bg-gradient-hero p-0 shadow-glow md:right-6 md:top-6"
+            aria-label="Add a new spot"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
         </main>
       </div>
 
       <SpotDetail spot={selectedSpot} open={!!selectedSpot} onClose={() => setSelectedSpot(null)} />
+      <AddSpotDialog open={addSpotOpen} onOpenChange={setAddSpotOpen} />
     </div>
   );
 };
