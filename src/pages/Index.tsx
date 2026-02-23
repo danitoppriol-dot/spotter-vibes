@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { MapPin, Star, Users, Layers, ArrowRight, ThumbsUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
+import AuthDialog from '@/components/AuthDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 const features = [
   { icon: Layers, title: 'Multi-Layer Map', desc: 'Study spots, nightlife, cafés, coworking & more' },
@@ -12,6 +15,9 @@ const features = [
 ];
 
 const Index = () => {
+  const [authOpen, setAuthOpen] = useState(false);
+  const { isLoggedIn } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -43,9 +49,11 @@ const Index = () => {
                   <MapPin className="h-5 w-5" /> Explore the Map <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="gap-2">
-                <Users className="h-5 w-5" /> Join as Student
-              </Button>
+              {!isLoggedIn && (
+                <Button size="lg" variant="outline" className="gap-2" onClick={() => setAuthOpen(true)}>
+                  <Users className="h-5 w-5" /> Join as Student
+                </Button>
+              )}
             </div>
           </motion.div>
         </div>
@@ -101,6 +109,8 @@ const Index = () => {
           <p className="text-xs text-muted-foreground">© 2026 Spotter. Made with ❤️ by KTH students.</p>
         </div>
       </footer>
+
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
     </div>
   );
 };
