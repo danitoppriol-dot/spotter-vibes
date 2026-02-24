@@ -43,9 +43,9 @@ const Explore = () => {
       .in('place_id', placeIds.length > 0 ? placeIds : ['none']) as any;
 
     // Fetch profile names for reviews
-    const userIds = [...new Set((reviews || []).map((r: any) => r.user_id))];
+    const userIds: string[] = [...new Set((reviews || []).map((r: any) => r.user_id as string))];
     const { data: profiles } = userIds.length > 0
-      ? await supabase.from('profiles').select('user_id, display_name').in('user_id', userIds) as any
+      ? await (supabase.from('profiles').select('user_id, display_name').in('user_id', userIds) as any)
       : { data: [] };
 
     const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p.display_name]));
