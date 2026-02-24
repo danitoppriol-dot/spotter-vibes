@@ -43,7 +43,7 @@ const Explore = () => {
       .in('place_id', placeIds.length > 0 ? placeIds : ['none']) as any;
 
     // Fetch profile names for reviews
-    const userIds: string[] = [...new Set((reviews || []).map((r: any) => r.user_id as string))];
+    const userIds: string[] = (reviews || []).map((r: any) => String(r.user_id)).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i);
     const { data: profiles } = userIds.length > 0
       ? await (supabase.from('profiles').select('user_id, display_name').in('user_id', userIds) as any)
       : { data: [] };
