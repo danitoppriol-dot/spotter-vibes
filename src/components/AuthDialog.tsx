@@ -88,7 +88,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.name@kth.se"
+                placeholder="your.name@***.**"
                 className="pl-9"
                 required
               />
