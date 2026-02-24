@@ -1,1 +1,4 @@
 project_id = "qmxqwvowpepimwjnkwba"
+
+[functions.places-autocomplete]
+verify_jwt = false
