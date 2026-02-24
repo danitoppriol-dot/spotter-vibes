@@ -1,16 +1,24 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CATEGORIES, SpotCategory, PLACE_SEARCH_RESULTS } from '@/lib/mockData';
-import { Mail, ArrowRight, Search, MapPin } from 'lucide-react';
+import { CATEGORIES, SpotCategory } from '@/lib/mockData';
+import { Mail, ArrowRight, Search, MapPin, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthDialog from '@/components/AuthDialog';
 import { supabase } from '@/integrations/supabase/client';
+
+interface PlaceResult {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  googleMapsUrl: string;
+}
 
 interface AddSpotDialogProps {
   open: boolean;
@@ -20,22 +28,47 @@ interface AddSpotDialogProps {
 
 const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) => {
   const [placeQuery, setPlaceQuery] = useState('');
-  const [selectedPlace, setSelectedPlace] = useState<{ name: string; address: string; lat: number; lng: number } | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
+  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [category, setCategory] = useState<SpotCategory | ''>('');
   const [description, setDescription] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const searchResults = useMemo(() => {
-    if (!placeQuery || placeQuery.length < 2) return [];
-    return PLACE_SEARCH_RESULTS.filter(
-      (p) =>
-        p.name.toLowerCase().includes(placeQuery.toLowerCase()) ||
-        p.address.toLowerCase().includes(placeQuery.toLowerCase())
-    ).slice(0, 5);
-  }, [placeQuery]);
+  // Debounced search
+  useEffect(() => {
+    if (!placeQuery || placeQuery.length < 2 || selectedPlace) {
+      setSearchResults([]);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('places-autocomplete', {
+          body: { query: placeQuery },
+        });
+
+        if (error) throw error;
+        setSearchResults(data?.results || []);
+      } catch (err) {
+        console.error('Place search failed:', err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 350);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [placeQuery, selectedPlace]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +94,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       address: selectedPlace.address,
       description,
       created_by: user.id,
-      google_maps_url: `https://maps.google.com/?q=${encodeURIComponent(selectedPlace.name + ' ' + selectedPlace.address)}`,
+      google_maps_url: selectedPlace.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(selectedPlace.name + ' ' + selectedPlace.address)}`,
     } as any);
 
     setIsSubmitting(false);
@@ -83,9 +116,10 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     setDescription('');
   };
 
-  const handleSelectPlace = (place: typeof PLACE_SEARCH_RESULTS[0]) => {
+  const handleSelectPlace = (place: PlaceResult) => {
     setSelectedPlace(place);
     setPlaceQuery(place.name);
+    setSearchResults([]);
   };
 
   return (
@@ -122,6 +156,9 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                     placeholder="Search for a café, library, park..."
                     className="pl-9"
                   />
+                  {isSearching && (
+                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  )}
                 </div>
                 {searchResults.length > 0 && !selectedPlace && (
                   <div className="rounded-lg border bg-popover shadow-md">
