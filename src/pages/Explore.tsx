@@ -36,7 +36,7 @@ const Explore = () => {
     }
 
     // Fetch reviews for visible places
-    const placeIds = places.map((p: any) => p.id);
+    const placeIds: string[] = places.map((p: any) => p.id);
     const { data: reviews } = await supabase
       .from('reviews')
       .select('*')
