@@ -14,7 +14,142 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      places: {
+        Row: {
+          address: string
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          google_maps_url: string | null
+          id: string
+          is_visible: boolean
+          lat: number
+          lng: number
+          name: string
+          opening_hours: string | null
+          recommendation_count: number
+        }
+        Insert: {
+          address: string
+          category: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          google_maps_url?: string | null
+          id?: string
+          is_visible?: boolean
+          lat: number
+          lng: number
+          name: string
+          opening_hours?: string | null
+          recommendation_count?: number
+        }
+        Update: {
+          address?: string
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          google_maps_url?: string | null
+          id?: string
+          is_visible?: boolean
+          lat?: number
+          lng?: number
+          name?: string
+          opening_hours?: string | null
+          recommendation_count?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          university: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          university?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          university?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recommendations: {
+        Row: {
+          created_at: string
+          id: string
+          place_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          place_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          place_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          created_at: string
+          id: string
+          place_id: string
+          rating: number
+          text: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          place_id: string
+          rating: number
+          text?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          place_id?: string
+          rating?: number
+          text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

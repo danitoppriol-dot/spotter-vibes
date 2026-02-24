@@ -10,20 +10,23 @@ import { Mail, ArrowRight, Search, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthDialog from '@/components/AuthDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddSpotDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSpotAdded?: () => void;
 }
 
-const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
+const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) => {
   const [placeQuery, setPlaceQuery] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<{ name: string; address: string; lat: number; lng: number } | null>(null);
   const [category, setCategory] = useState<SpotCategory | ''>('');
   const [description, setDescription] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
 
   const searchResults = useMemo(() => {
     if (!placeQuery || placeQuery.length < 2) return [];
@@ -34,9 +37,9 @@ const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
     ).slice(0, 5);
   }, [placeQuery]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !user) {
       setAuthOpen(true);
       return;
     }
@@ -44,11 +47,36 @@ const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
       toast({ title: 'Select a place', description: 'Search and select a place from the results.', variant: 'destructive' });
       return;
     }
+    if (!category) {
+      toast({ title: 'Select a category', description: 'Please choose a category for this spot.', variant: 'destructive' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const { error } = await supabase.from('places').insert({
+      name: selectedPlace.name,
+      category,
+      lat: selectedPlace.lat,
+      lng: selectedPlace.lng,
+      address: selectedPlace.address,
+      description,
+      created_by: user.id,
+      google_maps_url: `https://maps.google.com/?q=${encodeURIComponent(selectedPlace.name + ' ' + selectedPlace.address)}`,
+    } as any);
+
+    setIsSubmitting(false);
+
+    if (error) {
+      toast({ title: 'Error adding spot', description: error.message, variant: 'destructive' });
+      return;
+    }
+
     toast({
       title: 'Spot submitted! 🎉',
       description: `"${selectedPlace.name}" will appear on the map once 5 students recommend it.`,
     });
     onOpenChange(false);
+    onSpotAdded?.();
     setPlaceQuery('');
     setSelectedPlace(null);
     setCategory('');
@@ -84,7 +112,6 @@ const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Place Search */}
               <div className="space-y-2">
                 <Label>Search Place</Label>
                 <div className="relative">
@@ -137,10 +164,12 @@ const AddSpotDialog = ({ open, onOpenChange }: AddSpotDialogProps) => {
 
               <div className="space-y-2">
                 <Label htmlFor="spot-desc">Why is this spot great?</Label>
-                <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} required />
+                <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} />
               </div>
 
-              <Button type="submit" className="w-full bg-gradient-hero">Submit Recommendation</Button>
+              <Button type="submit" className="w-full bg-gradient-hero" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit Recommendation'}
+              </Button>
               <p className="text-center text-xs text-muted-foreground">
                 ℹ️ Spots become visible after 5 unique student recommendations.
               </p>
