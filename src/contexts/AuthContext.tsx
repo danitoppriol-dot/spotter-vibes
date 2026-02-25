@@ -7,6 +7,8 @@ interface AuthState {
   email: string;
   user: User | null;
   loading: boolean;
+  isModerator: boolean;
+  isAdmin: boolean;
   signUp: (email: string, password: string) => Promise<{ error: string | null; needsVerification: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
@@ -17,6 +19,8 @@ const AuthContext = createContext<AuthState>({
   email: '',
   user: null,
   loading: true,
+  isModerator: false,
+  isAdmin: false,
   signUp: async () => ({ error: null, needsVerification: false }),
   signIn: async () => ({ error: null }),
   logout: async () => {},
@@ -25,16 +29,36 @@ const AuthContext = createContext<AuthState>({
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isModerator, setIsModerator] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const fetchRoles = async (userId: string) => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId) as any;
+    
+    const roles = (data || []).map((r: any) => r.role);
+    setIsModerator(roles.includes('moderator') || roles.includes('admin'));
+    setIsAdmin(roles.includes('admin'));
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        setTimeout(() => fetchRoles(session.user.id), 0);
+      } else {
+        setIsModerator(false);
+        setIsAdmin(false);
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) fetchRoles(session.user.id);
     });
 
     return () => subscription.unsubscribe();
@@ -66,6 +90,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: user?.email || '',
       user,
       loading,
+      isModerator,
+      isAdmin,
       signUp,
       signIn,
       logout,
