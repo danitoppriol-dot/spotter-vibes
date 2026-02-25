@@ -6,12 +6,15 @@ import SpotDetail from '@/components/SpotDetail';
 import AddSpotDialog from '@/components/AddSpotDialog';
 import TrendingSpots from '@/components/TrendingSpots';
 import Navbar from '@/components/Navbar';
+import ModeratorPanel from '@/components/ModeratorPanel';
 import { Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Explore = () => {
+  const { isModerator } = useAuth();
   const [activeCategories, setActiveCategories] = useState<SpotCategory[]>(
     CATEGORIES.map((c) => c.id)
   );
@@ -24,10 +27,12 @@ const Explore = () => {
 
   const fetchSpots = useCallback(async () => {
     setLoading(true);
-    const { data: places, error } = await supabase
-      .from('places')
-      .select('*')
-      .eq('is_visible', true) as any;
+    const query = supabase.from('places').select('*');
+    // Moderators see all places, normal users see only visible ones
+    if (!isModerator) {
+      (query as any).eq('is_visible', true);
+    }
+    const { data: places, error } = await query as any;
 
     if (error || !places) {
       setDbSpots([]);
@@ -90,7 +95,7 @@ const Explore = () => {
 
     setDbSpots(spots);
     setLoading(false);
-  }, []);
+  }, [isModerator]);
 
   useEffect(() => { fetchSpots(); }, [fetchSpots]);
 
@@ -105,12 +110,13 @@ const Explore = () => {
 
   const filteredSpots = useMemo(() => {
     return allSpots.filter((s) => {
-      if (!s.isVisible) return false;
+      // Moderators see all, normal users only visible
+      if (!isModerator && !s.isVisible) return false;
       if (!activeCategories.includes(s.category)) return false;
       if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
-  }, [allSpots, activeCategories, searchQuery]);
+  }, [allSpots, activeCategories, searchQuery, isModerator]);
 
   const handleSpotClick = (spot: Spot) => {
     setSelectedSpot(spot);
@@ -134,9 +140,12 @@ const Explore = () => {
               />
             </div>
             <LayerFilter activeCategories={activeCategories} onToggle={toggleCategory} />
-            <Button className="gap-2 bg-gradient-hero shadow-glow" onClick={() => setAddSpotOpen(true)}>
-              <Plus className="h-4 w-4" /> Add Spot
-            </Button>
+            <div className="flex gap-2">
+              <Button className="flex-1 gap-2 bg-gradient-hero shadow-glow" onClick={() => setAddSpotOpen(true)}>
+                <Plus className="h-4 w-4" /> Add Spot
+              </Button>
+              {isModerator && <ModeratorPanel spots={allSpots} onUpdate={fetchSpots} />}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-4 pt-0">
             <TrendingSpots spots={filteredSpots} onSpotClick={handleSpotClick} />

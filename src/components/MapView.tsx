@@ -11,16 +11,17 @@ const CATEGORY_COLORS: Record<SpotCategory, string> = {
   outdoor: '#16a34a',
 };
 
-function createCategoryIcon(category: SpotCategory, trending: boolean) {
+function createCategoryIcon(category: SpotCategory, trending: boolean, isLight: boolean = false) {
   const color = CATEGORY_COLORS[category];
   const size = trending ? 16 : 12;
-  const pulse = trending
+  const opacity = isLight ? 0.35 : 1;
+  const pulse = trending && !isLight
     ? `<div style="position:absolute;top:-4px;left:-4px;width:${size + 8}px;height:${size + 8}px;border-radius:50%;background:${color};opacity:0.3;animation:pulse-dot 2s ease-in-out infinite;"></div>`
     : '';
 
   return L.divIcon({
     className: 'custom-marker',
-    html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;">
+    html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;opacity:${opacity};">
       ${pulse}
       <div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);position:relative;z-index:1;"></div>
     </div>`,
@@ -76,8 +77,9 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
     markersRef.current.clearLayers();
 
     spots.forEach((spot) => {
+      const isLight = spot.recommendations < 5;
       const marker = L.marker([spot.lat, spot.lng], {
-        icon: createCategoryIcon(spot.category, spot.trending),
+        icon: createCategoryIcon(spot.category, spot.trending, isLight),
       });
 
       marker.bindPopup(
