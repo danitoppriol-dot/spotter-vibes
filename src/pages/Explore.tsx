@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { CATEGORIES, Spot, SpotCategory, MOCK_SPOTS } from '@/lib/mockData';
+import { CATEGORIES, Spot, SpotCategory } from '@/lib/mockData';
 import MapView from '@/components/MapView';
 import LayerFilter from '@/components/LayerFilter';
 import SpotDetail from '@/components/SpotDetail';
@@ -37,10 +37,17 @@ const Explore = () => {
 
     // Fetch reviews for visible places
     const placeIds: string[] = places.map((p: any) => p.id);
+    
+    if (placeIds.length === 0) {
+      setDbSpots([]);
+      setLoading(false);
+      return;
+    }
+
     const { data: reviews } = await supabase
       .from('reviews')
       .select('*')
-      .in('place_id', placeIds.length > 0 ? placeIds : ['none']) as any;
+      .in('place_id', placeIds) as any;
 
     // Fetch profile names for reviews
     const userIds: string[] = (reviews || []).map((r: any) => String(r.user_id)).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i);
@@ -87,8 +94,8 @@ const Explore = () => {
 
   useEffect(() => { fetchSpots(); }, [fetchSpots]);
 
-  // Combine mock spots with DB spots (mock spots shown for demo)
-  const allSpots = useMemo(() => [...MOCK_SPOTS, ...dbSpots], [dbSpots]);
+  // Use only real DB spots (mock spots removed to avoid UUID conflicts)
+  const allSpots = useMemo(() => dbSpots, [dbSpots]);
 
   const toggleCategory = (cat: SpotCategory) => {
     setActiveCategories((prev) =>
