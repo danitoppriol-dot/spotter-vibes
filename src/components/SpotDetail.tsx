@@ -192,10 +192,19 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
               <Button className="flex-1 gap-2" onClick={handleRecommend}>
                 <ThumbsUp className="h-4 w-4" /> Recommend
               </Button>
-              <Button variant="outline" className="flex-1" onClick={handleOpenReview}>
-                Write Review
+              <Button
+                variant={isSaved ? 'secondary' : 'outline'}
+                className="gap-2"
+                onClick={handleToggleSave}
+                disabled={savingToggle}
+              >
+                <Heart className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+                {isSaved ? 'Salvato' : 'Salva'}
               </Button>
             </div>
+            <Button variant="outline" className="w-full" onClick={handleOpenReview}>
+              Write Review
+            </Button>
 
             <Button variant="outline" className="w-full gap-2" asChild>
               <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">

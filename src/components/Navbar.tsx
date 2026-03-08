@@ -32,6 +32,11 @@ const Navbar = () => {
             {isLoggedIn ? (
               <div className="flex items-center gap-2">
                 <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>
+                <Button variant="ghost" size="sm" className="gap-1.5" asChild>
+                  <Link to="/profile">
+                    <User className="h-4 w-4" /> Profilo
+                  </Link>
+                </Button>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={logout}>
                   <LogOut className="h-4 w-4" /> Sign Out
                 </Button>
