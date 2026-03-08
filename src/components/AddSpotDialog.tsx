@@ -343,6 +343,25 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Rating */}
+              <div className="space-y-2">
+                <Label>Your Rating *</Label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`h-7 w-7 ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/40'}`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Questionnaire */}
               {category && QUESTIONNAIRES[category as MapLayer]?.map((field) => (
                 <div key={field.id} className="space-y-2">
