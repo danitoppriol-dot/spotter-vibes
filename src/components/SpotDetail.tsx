@@ -140,6 +140,7 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   if (!spot) return null;
 
   const category = CATEGORIES.find((c) => c.id === spot.category);
+  const isStudySpot = spot.category === 'study';
 
   const handleRecommend = async () => {
     if (!isLoggedIn || !user) { setAuthOpen(true); return; }
