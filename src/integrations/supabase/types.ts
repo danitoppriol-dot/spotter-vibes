@@ -169,6 +169,44 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          place_id: string
+          reason: string
+          resolved: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          place_id: string
+          reason: string
+          resolved?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          place_id?: string
+          reason?: string
+          resolved?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           created_at: string
