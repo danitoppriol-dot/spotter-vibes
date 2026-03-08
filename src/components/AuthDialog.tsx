@@ -62,7 +62,7 @@ function isAllowedDomain(email: string): boolean {
 }
 
 const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
