@@ -135,6 +135,11 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       return;
     }
 
+    if (rating < 1 || rating > 5) {
+      toast({ title: 'Rating required', description: 'Please give this spot a rating from 1 to 5.', variant: 'destructive' });
+      return;
+    }
+
     // Check questionnaire completeness
     const requiredFields = QUESTIONNAIRES[category as MapLayer] || [];
     const missing = requiredFields.filter(f => !questionnaire[f.id]);
