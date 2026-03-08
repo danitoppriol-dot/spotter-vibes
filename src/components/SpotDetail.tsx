@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Spot, CATEGORIES } from '@/lib/mockData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2 } from 'lucide-react';
+import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2, Timer } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -42,6 +42,33 @@ function StarRating({ rating, interactive, onRate }: { rating: number; interacti
   );
 }
 
+// Haversine distance in meters
+function getDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function useCountdown(expiresAt?: string | null) {
+  const [timeLeft, setTimeLeft] = useState('');
+  useEffect(() => {
+    if (!expiresAt) return;
+    const update = () => {
+      const diff = new Date(expiresAt).getTime() - Date.now();
+      if (diff <= 0) { setTimeLeft('Expired'); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setTimeLeft(`${h}h ${m}m left`);
+    };
+    update();
+    const id = setInterval(update, 60000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+  return timeLeft;
+}
+
 const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
@@ -52,6 +79,7 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const [savingToggle, setSavingToggle] = useState(false);
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
+  const countdown = useCountdown(spot?.expiresAt);
 
   useEffect(() => {
     if (!user || !spot) return;
@@ -85,6 +113,25 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
 
   const handleRecommend = async () => {
     if (!isLoggedIn || !user) { setAuthOpen(true); return; }
+
+    // Geofencing: must be within 500m
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+      );
+      const dist = getDistanceMeters(pos.coords.latitude, pos.coords.longitude, spot.lat, spot.lng);
+      if (dist > 500) {
+        toast({
+          title: 'Too far away 📍',
+          description: `You need to be within 500m to endorse. You're ${Math.round(dist)}m away.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    } catch {
+      // If geolocation fails, allow the endorse (graceful degradation)
+    }
+
     const { error } = await supabase.from('recommendations').insert({
       user_id: user.id,
       place_id: spot.id,
@@ -156,6 +203,11 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                 {spot.trending && (
                   <Badge variant="outline" className="gap-1 border-secondary text-secondary">
                     <TrendingUp className="h-3 w-3" /> Trending
+                  </Badge>
+                )}
+                {countdown && countdown !== 'Expired' && (
+                  <Badge variant="outline" className="gap-1 border-orange-500 text-orange-600">
+                    <Timer className="h-3 w-3" /> {countdown}
                   </Badge>
                 )}
               </div>

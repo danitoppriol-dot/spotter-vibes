@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
+import SharedMaps from "./pages/SharedMaps";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/shared-maps" element={<SharedMaps />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/shared/:shareToken" element={<Profile />} />

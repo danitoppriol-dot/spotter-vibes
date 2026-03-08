@@ -6,8 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { LAYERS, MapLayer } from '@/lib/mockData';
-import { Mail, ArrowRight, Search, MapPin, Loader2, Camera, Upload } from 'lucide-react';
+import { Mail, ArrowRight, Search, MapPin, Loader2, Camera, Upload, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthDialog from '@/components/AuthDialog';
@@ -55,6 +56,8 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
   const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isTemporary, setIsTemporary] = useState(false);
+  const [expiryHours, setExpiryHours] = useState<string>('12');
   const [authOpen, setAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'search' | 'details'>('search');
@@ -143,6 +146,10 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     const { data: urlData } = supabase.storage.from('place-photos').getPublicUrl(path);
     photoUrl = urlData.publicUrl;
 
+    const expiresAt = isTemporary
+      ? new Date(Date.now() + parseInt(expiryHours) * 60 * 60 * 1000).toISOString()
+      : null;
+
     const { error } = await supabase.from('places').insert({
       name: selectedPlace.name,
       category,
@@ -156,6 +163,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       map_type: mapType,
       questionnaire: questionnaire,
       filters: questionnaire,
+      expires_at: expiresAt,
     } as any);
 
     setIsSubmitting(false);
@@ -183,6 +191,8 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     setQuestionnaire({});
     setPhotoFile(null);
     setPhotoPreview(null);
+    setIsTemporary(false);
+    setExpiryHours('12');
     setStep('search');
   };
 
@@ -355,6 +365,29 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                   </Select>
                 </div>
               ))}
+
+              {/* Temporary pin */}
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                <div className="flex items-center gap-3">
+                  <Switch checked={isTemporary} onCheckedChange={setIsTemporary} />
+                  <Label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <Clock className="h-3.5 w-3.5" /> Temporary pin
+                  </Label>
+                </div>
+                {isTemporary && (
+                  <div className="space-y-1 pl-10">
+                    <Label className="text-xs text-muted-foreground">Expires after</Label>
+                    <Select value={expiryHours} onValueChange={setExpiryHours}>
+                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="6">6 hours</SelectItem>
+                        <SelectItem value="12">12 hours</SelectItem>
+                        <SelectItem value="24">24 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
 
               {/* Description */}
               <div className="space-y-2">

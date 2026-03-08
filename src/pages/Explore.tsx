@@ -59,7 +59,9 @@ const Explore = () => {
 
     const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p.display_name]));
 
-    const spots: Spot[] = places.map((p: any) => {
+    const spots: Spot[] = places
+      .filter((p: any) => !p.expires_at || new Date(p.expires_at) > new Date())
+      .map((p: any) => {
       const placeReviews = (reviews || []).filter((r: any) => r.place_id === p.id);
       const avgRating = placeReviews.length > 0
         ? placeReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / placeReviews.length
@@ -85,6 +87,7 @@ const Explore = () => {
         mapType: p.map_type,
         questionnaire: (p.questionnaire as Record<string, string>) || {},
         filters: p.filters || {},
+        expiresAt: p.expires_at,
         reviews: placeReviews.map((r: any) => ({
           id: r.id,
           userName: profileMap.get(r.user_id) || 'Student',

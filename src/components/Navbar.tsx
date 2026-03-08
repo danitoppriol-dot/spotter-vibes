@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MapPin, Compass, LogIn, LogOut, User } from 'lucide-react';
+import { MapPin, Compass, LogIn, LogOut, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
@@ -26,6 +26,13 @@ const Navbar = () => {
               <Button variant="ghost" size="sm" asChild className="gap-1.5">
                 <Link to="/explore">
                   <Compass className="h-4 w-4" /> Explore
+                </Link>
+              </Button>
+            )}
+            {location.pathname !== '/shared-maps' && (
+              <Button variant="ghost" size="sm" asChild className="gap-1.5">
+                <Link to="/shared-maps">
+                  <Users className="h-4 w-4" /> Shared Maps
                 </Link>
               </Button>
             )}
