@@ -39,6 +39,9 @@ const Profile = () => {
   const [editingName, setEditingName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [activeTab, setActiveTab] = useState('saved');
+  const [mapTitle, setMapTitle] = useState('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [newMapTitle, setNewMapTitle] = useState('');
 
   useEffect(() => {
     if (!profileUserId && !shareToken) return;
@@ -86,6 +89,7 @@ const Profile = () => {
     setProfile(profileData);
     setIsMapPublic(profileData.is_map_public || false);
     setIsNamePublic(profileData.is_name_public || false);
+    setMapTitle(profileData.map_title || '');
 
     const canViewMap = isOwnProfile || isSharedView || profileData.is_map_public;
     if (!canViewMap) { setLoading(false); return; }
@@ -141,6 +145,14 @@ const Profile = () => {
     setProfile((p: any) => ({ ...p, display_name: newDisplayName.trim() }));
     setEditingName(false);
     toast({ title: 'Name updated ✏️' });
+  };
+
+  const handleSaveMapTitle = async () => {
+    await supabase.from('profiles').update({ map_title: newMapTitle.trim() || null } as any).eq('user_id', user!.id);
+    setMapTitle(newMapTitle.trim());
+    setProfile((p: any) => ({ ...p, map_title: newMapTitle.trim() || null }));
+    setEditingTitle(false);
+    toast({ title: 'Map title updated 🗺️' });
   };
 
   const handleShareLink = async () => {
@@ -260,6 +272,36 @@ const Profile = () => {
                 </>
               )}
             </div>
+            {/* Map title */}
+            {(mapTitle || isOwnProfile) && (
+              <div className="flex items-center gap-2">
+                {editingTitle ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newMapTitle}
+                      onChange={(e) => setNewMapTitle(e.target.value)}
+                      placeholder="e.g. Best spots in Stockholm"
+                      className="h-7 w-64 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveMapTitle()}
+                    />
+                    <Button size="sm" variant="ghost" onClick={handleSaveMapTitle}>Save</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingTitle(false)}>Cancel</Button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-muted-foreground italic">
+                      {mapTitle || (isOwnProfile ? 'Add a title to your map…' : '')}
+                    </p>
+                    {isOwnProfile && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setNewMapTitle(mapTitle); setEditingTitle(true); }}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               {profile?.university && <span>📧 {profile.university}</span>}
               <span>·</span>

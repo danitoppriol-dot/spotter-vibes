@@ -17,6 +17,7 @@ interface PublicProfile {
   university: string | null;
   is_name_public: boolean;
   share_token: string | null;
+  map_title: string | null;
   saved_count: number;
   avg_rating: number;
   rating_count: number;
@@ -95,6 +96,7 @@ const SharedMaps = () => {
           university: p.university,
           is_name_public: p.is_name_public,
           share_token: p.share_token,
+          map_title: p.map_title,
           saved_count: countMap.get(p.user_id) || 0,
           avg_rating: rData ? rData.sum / rData.count : 0,
           rating_count: rData?.count || 0,
@@ -134,10 +136,13 @@ const SharedMaps = () => {
 
   const filtered = profiles.filter(p => {
     if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
     const name = p.is_name_public ? p.display_name || '' : '';
     const uni = p.university || '';
-    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           uni.toLowerCase().includes(searchQuery.toLowerCase());
+    const title = p.map_title || '';
+    return name.toLowerCase().includes(q) ||
+           uni.toLowerCase().includes(q) ||
+           title.toLowerCase().includes(q);
   });
 
   return (
@@ -185,11 +190,12 @@ const SharedMaps = () => {
                 <div className="mb-3 flex items-center justify-between">
                   <div>
                     <h3 className="font-display font-semibold">
-                      {profile.is_name_public ? profile.display_name : 'Anonymous'}
+                      {profile.map_title || (profile.is_name_public ? `${profile.display_name}'s Map` : 'Anonymous Map')}
                     </h3>
-                    {profile.university && (
-                      <p className="text-xs text-muted-foreground">🎓 {profile.university}</p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {profile.is_name_public ? profile.display_name : 'Anonymous'}
+                      {profile.university && ` · 🎓 ${profile.university}`}
+                    </p>
                   </div>
                   <Badge variant="secondary" className="gap-1">
                     <MapPin className="h-3 w-3" /> {profile.saved_count} spots
