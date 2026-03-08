@@ -484,13 +484,34 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                 className="space-y-3 rounded-lg border bg-muted/30 p-4">
                 <h4 className="font-display text-sm font-semibold">Your Review</h4>
                 <div className="space-y-1">
-                  <Label className="text-xs">Rating</Label>
+                  <Label className="text-xs">Rating *</Label>
                   <StarRating rating={reviewRating} interactive onRate={setReviewRating} />
                 </div>
+
+                {/* Study-specific fields */}
+                {isStudySpot && (
+                  <>
+                    <div className="flex items-center justify-between rounded-md border bg-background p-3">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-secondary" />
+                        <Label className="text-xs font-medium">Power Outlets Available? *</Label>
+                      </div>
+                      <Switch checked={reviewHasOutlets} onCheckedChange={setReviewHasOutlets} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1">
+                        <Volume2 className="h-3.5 w-3.5" /> Silence Level * <span className="text-muted-foreground">(1=noisy, 5=silent)</span>
+                      </Label>
+                      <StarRating rating={reviewSilenceLevel} interactive onRate={setReviewSilenceLevel} />
+                    </div>
+                  </>
+                )}
+
                 <div className="space-y-1">
-                  <Label className="text-xs">Comment (optional)</Label>
+                  <Label className="text-xs">Comment *</Label>
                   <Textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)}
-                    placeholder="What did you like about this place?" rows={3} />
+                    placeholder={isStudySpot ? "Describe WiFi quality, seating, atmosphere..." : "What did you like about this place?"}
+                    rows={3} />
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" className="gap-1.5 bg-gradient-hero" onClick={handleSubmitReview} disabled={isSubmitting}>
