@@ -131,18 +131,19 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
 
     setIsSubmitting(true);
 
-    // Upload photo
     let photoUrl: string | null = null;
-    const ext = photoFile.name.split('.').pop() || 'jpg';
-    const path = `${user.id}/${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('place-photos').upload(path, photoFile);
-    if (uploadError) {
-      toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
-      setIsSubmitting(false);
-      return;
+    if (photoFile) {
+      const ext = photoFile.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('place-photos').upload(path, photoFile);
+      if (uploadError) {
+        toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('place-photos').getPublicUrl(path);
+      photoUrl = urlData.publicUrl;
     }
-    const { data: urlData } = supabase.storage.from('place-photos').getPublicUrl(path);
-    photoUrl = urlData.publicUrl;
 
     const expiresAt = isTemporary
       ? new Date(Date.now() + parseInt(expiryHours) * 60 * 60 * 1000).toISOString()
