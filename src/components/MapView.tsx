@@ -155,18 +155,34 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
         markersRef.current.push(pulseMarker);
       }
 
-      const infoWindow = new google.maps.InfoWindow({
-        content: `
-          <div style="font-family:'Space Grotesk',sans-serif;padding:4px 0;">
-            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">
-              ${spot.hasOutlets ? '⚡ ' : ''}${spot.name}
-            </div>
-            <div style="font-size:12px;color:#6b7280;margin-top:2px;">${spot.address}</div>
-            ${spot.avgSilenceLevel ? `<div style="font-size:11px;color:#3b6fd4;margin-top:3px;">🤫 Silence: ${spot.avgSilenceLevel.toFixed(1)}/5</div>` : ''}
-            ${!isOfficial ? '<div style="font-size:11px;color:#9333ea;margin-top:4px;">👻 Unconfirmed</div>' : ''}
-          </div>
-        `,
-      });
+      const infoDiv = document.createElement('div');
+      infoDiv.style.cssText = "font-family:'Space Grotesk',sans-serif;padding:4px 0;";
+
+      const title = document.createElement('div');
+      title.style.cssText = 'font-size:14px;font-weight:600;color:#1a1a2e;';
+      title.textContent = (spot.hasOutlets ? '⚡ ' : '') + spot.name;
+      infoDiv.appendChild(title);
+
+      const addr = document.createElement('div');
+      addr.style.cssText = 'font-size:12px;color:#6b7280;margin-top:2px;';
+      addr.textContent = spot.address;
+      infoDiv.appendChild(addr);
+
+      if (spot.avgSilenceLevel) {
+        const silence = document.createElement('div');
+        silence.style.cssText = 'font-size:11px;color:#3b6fd4;margin-top:3px;';
+        silence.textContent = `🤫 Silence: ${spot.avgSilenceLevel.toFixed(1)}/5`;
+        infoDiv.appendChild(silence);
+      }
+
+      if (!isOfficial) {
+        const unofficial = document.createElement('div');
+        unofficial.style.cssText = 'font-size:11px;color:#9333ea;margin-top:4px;';
+        unofficial.textContent = '👻 Unconfirmed';
+        infoDiv.appendChild(unofficial);
+      }
+
+      const infoWindow = new google.maps.InfoWindow({ content: infoDiv });
 
       marker.addListener('click', () => {
         infoWindow.open(mapRef.current!, marker);

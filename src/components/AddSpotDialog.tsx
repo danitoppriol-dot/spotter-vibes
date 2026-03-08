@@ -119,7 +119,20 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       toast({ title: 'Select a layer', description: 'Please choose a map layer for this spot.', variant: 'destructive' });
       return;
     }
-    // Photo is optional — no validation needed
+
+    // Input validation
+    if (selectedPlace.name.length > 200) {
+      toast({ title: 'Name too long', description: 'Place name must be under 200 characters.', variant: 'destructive' });
+      return;
+    }
+    if (description.length > 2000) {
+      toast({ title: 'Description too long', description: 'Max 2000 characters.', variant: 'destructive' });
+      return;
+    }
+    if (selectedPlace.lat < -90 || selectedPlace.lat > 90 || selectedPlace.lng < -180 || selectedPlace.lng > 180) {
+      toast({ title: 'Invalid location', description: 'Coordinates are out of range.', variant: 'destructive' });
+      return;
+    }
 
     // Check questionnaire completeness
     const requiredFields = QUESTIONNAIRES[category as MapLayer] || [];
@@ -332,7 +345,8 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="spot-desc">Why is this spot great?</Label>
-                <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} />
+                <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} maxLength={2000} />
+                <p className="text-xs text-muted-foreground text-right">{description.length}/2000</p>
               </div>
 
               {/* Temporary pin */}
