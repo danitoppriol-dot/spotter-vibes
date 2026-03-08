@@ -147,6 +147,14 @@ const Profile = () => {
     toast({ title: 'Name updated ✏️' });
   };
 
+  const handleSaveMapTitle = async () => {
+    await supabase.from('profiles').update({ map_title: newMapTitle.trim() || null } as any).eq('user_id', user!.id);
+    setMapTitle(newMapTitle.trim());
+    setProfile((p: any) => ({ ...p, map_title: newMapTitle.trim() || null }));
+    setEditingTitle(false);
+    toast({ title: 'Map title updated 🗺️' });
+  };
+
   const handleShareLink = async () => {
     if (!profile?.share_token) return;
     const url = `${window.location.origin}/shared/${profile.share_token}`;
