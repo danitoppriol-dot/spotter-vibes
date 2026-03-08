@@ -96,6 +96,7 @@ const SharedMaps = () => {
           university: p.university,
           is_name_public: p.is_name_public,
           share_token: p.share_token,
+          map_title: p.map_title,
           saved_count: countMap.get(p.user_id) || 0,
           avg_rating: rData ? rData.sum / rData.count : 0,
           rating_count: rData?.count || 0,
