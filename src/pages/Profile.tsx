@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Map, List, Star, MapPin, Lock, Globe, Eye, EyeOff, Heart, Share2, Copy, Check, Pencil } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Map, List, Star, MapPin, Lock, Globe, Eye, EyeOff, Heart, Share2, Copy, Check, Pencil, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
@@ -27,6 +28,7 @@ const Profile = () => {
 
   const [profile, setProfile] = useState<any>(null);
   const [savedSpots, setSavedSpots] = useState<Spot[]>([]);
+  const [createdSpots, setCreatedSpots] = useState<Spot[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
@@ -36,68 +38,16 @@ const Profile = () => {
   const [copied, setCopied] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
+  const [activeTab, setActiveTab] = useState('saved');
 
   useEffect(() => {
     if (!profileUserId && !shareToken) return;
     fetchProfileData();
   }, [profileUserId, shareToken]);
 
-  const fetchProfileData = async () => {
-    setLoading(true);
-
-    let profileData: any = null;
-
-    if (shareToken) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('share_token', shareToken)
-        .single();
-      profileData = data;
-    } else if (profileUserId) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', profileUserId)
-        .single();
-      profileData = data;
-    }
-
-    if (!profileData) { setLoading(false); return; }
-
-    setProfile(profileData);
-    setIsMapPublic(profileData.is_map_public || false);
-    setIsNamePublic(profileData.is_name_public || false);
-
-    // For shared links, always show the map. For non-owner visits, check public flag.
-    const canViewMap = isOwnProfile || isSharedView || profileData.is_map_public;
-    if (!canViewMap) {
-      setLoading(false);
-      return;
-    }
-
-    const targetUserId = profileData.user_id;
-
-    const { data: saved } = await supabase
-      .from('saved_places')
-      .select('place_id')
-      .eq('user_id', targetUserId) as any;
-
-    if (!saved || saved.length === 0) {
-      setSavedSpots([]);
-      setLoading(false);
-      return;
-    }
-
-    const placeIds = saved.map((s: any) => s.place_id);
-    const { data: places } = await supabase.from('places').select('*').in('id', placeIds) as any;
-
-    if (!places) { setSavedSpots([]); setLoading(false); return; }
-
-    const { data: reviews } = await supabase.from('reviews').select('*').in('place_id', placeIds) as any;
-
-    const spots: Spot[] = places.map((p: any) => {
-      const placeReviews = (reviews || []).filter((r: any) => r.place_id === p.id);
+  const buildSpots = (places: any[], reviews: any[]): Spot[] => {
+    return places.map((p: any) => {
+      const placeReviews = reviews.filter((r: any) => r.place_id === p.id);
       const avgRating = placeReviews.length > 0
         ? placeReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / placeReviews.length
         : 0;
@@ -116,9 +66,60 @@ const Profile = () => {
         })),
       };
     });
+  };
 
-    setSavedSpots(spots);
-    if (spots.length > 0) setMapCenter([spots[0].lat, spots[0].lng]);
+  const fetchProfileData = async () => {
+    setLoading(true);
+
+    let profileData: any = null;
+
+    if (shareToken) {
+      const { data } = await supabase.from('profiles').select('*').eq('share_token', shareToken).single();
+      profileData = data;
+    } else if (profileUserId) {
+      const { data } = await supabase.from('profiles').select('*').eq('user_id', profileUserId).single();
+      profileData = data;
+    }
+
+    if (!profileData) { setLoading(false); return; }
+
+    setProfile(profileData);
+    setIsMapPublic(profileData.is_map_public || false);
+    setIsNamePublic(profileData.is_name_public || false);
+
+    const canViewMap = isOwnProfile || isSharedView || profileData.is_map_public;
+    if (!canViewMap) { setLoading(false); return; }
+
+    const targetUserId = profileData.user_id;
+
+    // Fetch saved spots
+    const { data: saved } = await supabase.from('saved_places').select('place_id').eq('user_id', targetUserId) as any;
+    const savedPlaceIds = (saved || []).map((s: any) => s.place_id);
+
+    // Fetch created spots
+    const { data: created } = await supabase.from('places').select('*').eq('created_by', targetUserId) as any;
+    const createdPlaceIds = (created || []).map((p: any) => p.id);
+
+    // Get all unique place IDs for saved spots
+    let savedPlaces: any[] = [];
+    if (savedPlaceIds.length > 0) {
+      const { data } = await supabase.from('places').select('*').in('id', savedPlaceIds) as any;
+      savedPlaces = data || [];
+    }
+
+    // Get reviews for all relevant places
+    const allPlaceIds = [...new Set([...savedPlaceIds, ...createdPlaceIds])];
+    let allReviews: any[] = [];
+    if (allPlaceIds.length > 0) {
+      const { data } = await supabase.from('reviews').select('*').in('place_id', allPlaceIds) as any;
+      allReviews = data || [];
+    }
+
+    setSavedSpots(buildSpots(savedPlaces, allReviews));
+    setCreatedSpots(buildSpots(created || [], allReviews));
+
+    const allSpots = [...savedPlaces, ...(created || [])];
+    if (allSpots.length > 0) setMapCenter([allSpots[0].lat, allSpots[0].lng]);
     setLoading(false);
   };
 
@@ -173,6 +174,62 @@ const Profile = () => {
 
   const isPrivateAndNotOwner = !isOwnProfile && !isSharedView && profile && !profile.is_map_public;
 
+  const currentSpots = activeTab === 'saved' ? savedSpots : createdSpots;
+
+  const renderSpotsList = (spots: Spot[]) => (
+    spots.length === 0 ? (
+      <div className="flex flex-col items-center justify-center gap-3 py-20">
+        {activeTab === 'saved' ? <Heart className="h-12 w-12 text-muted-foreground/50" /> : <PlusCircle className="h-12 w-12 text-muted-foreground/50" />}
+        <p className="text-muted-foreground">
+          {activeTab === 'saved'
+            ? (isOwnProfile ? 'No saved spots yet. Explore and save your favorites!' : 'No saved spots')
+            : (isOwnProfile ? 'No spots created yet. Add your first recommendation!' : 'No spots created')}
+        </p>
+        {isOwnProfile && (
+          <Button variant="outline" onClick={() => navigate('/explore')}>
+            Explore the map
+          </Button>
+        )}
+      </div>
+    ) : viewMode === 'map' ? (
+      <div className="h-[500px] overflow-hidden rounded-xl border">
+        <MapView spots={spots} onSpotClick={handleSpotClick} center={mapCenter} />
+      </div>
+    ) : (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {spots.map((spot, i) => {
+          const cat = CATEGORIES.find(c => c.id === spot.category);
+          return (
+            <motion.div
+              key={spot.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="cursor-pointer rounded-xl border bg-card p-4 shadow-card transition-shadow hover:shadow-elevated"
+              onClick={() => handleSpotClick(spot)}
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="font-display text-sm font-semibold">{spot.name}</h3>
+                <Badge variant="secondary" className={`${cat?.color} text-primary-foreground text-xs`}>
+                  {cat?.icon}
+                </Badge>
+              </div>
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" /> {spot.address}
+              </p>
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <Star className="h-3 w-3 fill-secondary text-secondary" />
+                {spot.rating > 0 ? spot.rating.toFixed(1) : '—'}
+                <span>·</span>
+                {spot.recommendations} endorsements
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    )
+  );
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <Navbar />
@@ -206,7 +263,9 @@ const Profile = () => {
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               {profile?.university && <span>📧 {profile.university}</span>}
               <span>·</span>
-              <Heart className="h-3.5 w-3.5" /> {savedSpots.length} saved spots
+              <Heart className="h-3.5 w-3.5" /> {savedSpots.length} saved
+              <span>·</span>
+              <PlusCircle className="h-3.5 w-3.5" /> {createdSpots.length} created
             </p>
             {isSharedView && (
               <Badge variant="outline" className="gap-1">
@@ -256,70 +315,37 @@ const Profile = () => {
             <Lock className="h-12 w-12 text-muted-foreground/50" />
             <p className="text-muted-foreground">This map is private</p>
           </div>
+        ) : loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-10 w-10 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+              <p className="text-sm text-muted-foreground">Loading profile…</p>
+            </div>
+          </div>
         ) : (
           <>
-            <div className="mb-4 flex gap-2">
-              <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" className="gap-1.5" onClick={() => setViewMode('list')}>
-                <List className="h-4 w-4" /> List
-              </Button>
-              <Button variant={viewMode === 'map' ? 'default' : 'outline'} size="sm" className="gap-1.5" onClick={() => setViewMode('map')}>
-                <Map className="h-4 w-4" /> Map
-              </Button>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+                <TabsList>
+                  <TabsTrigger value="saved" className="gap-1.5">
+                    <Heart className="h-3.5 w-3.5" /> Saved ({savedSpots.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="created" className="gap-1.5">
+                    <PlusCircle className="h-3.5 w-3.5" /> Created ({createdSpots.length})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <div className="flex gap-2">
+                <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" className="gap-1.5" onClick={() => setViewMode('list')}>
+                  <List className="h-4 w-4" /> List
+                </Button>
+                <Button variant={viewMode === 'map' ? 'default' : 'outline'} size="sm" className="gap-1.5" onClick={() => setViewMode('map')}>
+                  <Map className="h-4 w-4" /> Map
+                </Button>
+              </div>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : savedSpots.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-20">
-                <Heart className="h-12 w-12 text-muted-foreground/50" />
-                <p className="text-muted-foreground">
-                  {isOwnProfile ? 'No saved spots yet' : 'No saved spots'}
-                </p>
-                {isOwnProfile && (
-                  <Button variant="outline" onClick={() => navigate('/explore')}>
-                    Explore the map
-                  </Button>
-                )}
-              </div>
-            ) : viewMode === 'map' ? (
-              <div className="h-[500px] overflow-hidden rounded-xl border">
-                <MapView spots={savedSpots} onSpotClick={handleSpotClick} center={mapCenter} />
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {savedSpots.map((spot, i) => {
-                  const cat = CATEGORIES.find(c => c.id === spot.category);
-                  return (
-                    <motion.div
-                      key={spot.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="cursor-pointer rounded-xl border bg-card p-4 shadow-card transition-shadow hover:shadow-elevated"
-                      onClick={() => handleSpotClick(spot)}
-                    >
-                      <div className="mb-2 flex items-center justify-between">
-                        <h3 className="font-display text-sm font-semibold">{spot.name}</h3>
-                        <Badge variant="secondary" className={`${cat?.color} text-primary-foreground text-xs`}>
-                          {cat?.icon}
-                        </Badge>
-                      </div>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {spot.address}
-                      </p>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                        <Star className="h-3 w-3 fill-secondary text-secondary" />
-                        {spot.rating > 0 ? spot.rating.toFixed(1) : '—'}
-                        <span>·</span>
-                        {spot.recommendations} endorsements
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
+            {renderSpotsList(currentSpots)}
           </>
         )}
       </div>

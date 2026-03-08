@@ -194,6 +194,14 @@ const Explore = () => {
         </div>
 
         <main className="relative flex-1">
+          {loading && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-10 w-10 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+                <p className="text-sm text-muted-foreground">Loading spots…</p>
+              </div>
+            </div>
+          )}
           <MapView spots={filteredSpots} onSpotClick={handleSpotClick} center={mapCenter} />
           <Button
             onClick={() => setAddSpotOpen(true)}
