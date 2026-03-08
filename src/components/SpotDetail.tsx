@@ -185,10 +185,26 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
       toast({ title: 'Add a rating', description: 'Please select a star rating.', variant: 'destructive' });
       return;
     }
+    if (!reviewText.trim()) {
+      toast({ title: 'Comment required', description: 'Please write a comment for your review.', variant: 'destructive' });
+      return;
+    }
+    if (isStudySpot && reviewSilenceLevel === 0) {
+      toast({ title: 'Silence level required', description: 'Please rate the silence level.', variant: 'destructive' });
+      return;
+    }
     setIsSubmitting(true);
-    const { error } = await supabase.from('reviews').insert({
-      user_id: user.id, place_id: spot.id, rating: reviewRating, text: reviewText || null,
-    } as any);
+    const insertData: any = {
+      user_id: user.id,
+      place_id: spot.id,
+      rating: reviewRating,
+      text: reviewText.trim(),
+    };
+    if (isStudySpot) {
+      insertData.has_outlets = reviewHasOutlets;
+      insertData.silence_level = reviewSilenceLevel;
+    }
+    const { error } = await supabase.from('reviews').insert(insertData as any);
     setIsSubmitting(false);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -198,6 +214,8 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
     setShowReviewForm(false);
     setReviewRating(0);
     setReviewText('');
+    setReviewHasOutlets(false);
+    setReviewSilenceLevel(0);
     onUpdate?.();
   };
 
