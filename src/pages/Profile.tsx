@@ -134,6 +134,14 @@ const Profile = () => {
     toast({ title: value ? 'Name visible' : 'Name hidden' });
   };
 
+  const handleSaveDisplayName = async () => {
+    if (!newDisplayName.trim()) return;
+    await supabase.from('profiles').update({ display_name: newDisplayName.trim() } as any).eq('user_id', user!.id);
+    setProfile((p: any) => ({ ...p, display_name: newDisplayName.trim() }));
+    setEditingName(false);
+    toast({ title: 'Name updated ✏️' });
+  };
+
   const handleShareLink = async () => {
     if (!profile?.share_token) return;
     const url = `${window.location.origin}/shared/${profile.share_token}`;
