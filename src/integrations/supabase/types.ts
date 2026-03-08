@@ -67,6 +67,8 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          is_map_public: boolean
+          is_name_public: boolean
           university: string | null
           user_id: string
         }
@@ -74,6 +76,8 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_map_public?: boolean
+          is_name_public?: boolean
           university?: string | null
           user_id: string
         }
@@ -81,6 +85,8 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_map_public?: boolean
+          is_name_public?: boolean
           university?: string | null
           user_id?: string
         }
@@ -143,6 +149,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "reviews_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_places: {
+        Row: {
+          created_at: string
+          id: string
+          place_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          place_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          place_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_places_place_id_fkey"
             columns: ["place_id"]
             isOneToOne: false
             referencedRelation: "places"
