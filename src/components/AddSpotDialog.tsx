@@ -219,6 +219,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     setDescription('');
     setMapType('both');
     setQuestionnaire({});
+    setRating(0);
     setPhotoFile(null);
     setPhotoPreview(null);
     setIsTemporary(false);
