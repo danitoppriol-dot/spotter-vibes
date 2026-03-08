@@ -29,6 +29,13 @@ const Navbar = () => {
                 </Link>
               </Button>
             )}
+            {location.pathname !== '/shared-maps' && (
+              <Button variant="ghost" size="sm" asChild className="gap-1.5">
+                <Link to="/shared-maps">
+                  <Users className="h-4 w-4" /> Shared Maps
+                </Link>
+              </Button>
+            )}
             {isLoggedIn ? (
               <div className="flex items-center gap-2">
                 <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>
