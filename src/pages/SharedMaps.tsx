@@ -192,7 +192,7 @@ const SharedMaps = () => {
                     )}
                   </div>
                   <Badge variant="secondary" className="gap-1">
-                    <Heart className="h-3 w-3" /> {profile.saved_count}
+                    <MapPin className="h-3 w-3" /> {profile.saved_count} spots
                   </Badge>
                 </div>
 
