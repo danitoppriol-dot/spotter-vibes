@@ -27,8 +27,11 @@ export type Database = {
           is_visible: boolean
           lat: number
           lng: number
+          map_type: string
           name: string
           opening_hours: string | null
+          photo_url: string | null
+          questionnaire: Json | null
           recommendation_count: number
           sub_category: string | null
         }
@@ -44,8 +47,11 @@ export type Database = {
           is_visible?: boolean
           lat: number
           lng: number
+          map_type?: string
           name: string
           opening_hours?: string | null
+          photo_url?: string | null
+          questionnaire?: Json | null
           recommendation_count?: number
           sub_category?: string | null
         }
@@ -61,8 +67,11 @@ export type Database = {
           is_visible?: boolean
           lat?: number
           lng?: number
+          map_type?: string
           name?: string
           opening_hours?: string | null
+          photo_url?: string | null
+          questionnaire?: Json | null
           recommendation_count?: number
           sub_category?: string | null
         }
