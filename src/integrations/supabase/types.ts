@@ -210,25 +210,31 @@ export type Database = {
       reviews: {
         Row: {
           created_at: string
+          has_outlets: boolean | null
           id: string
           place_id: string
           rating: number
+          silence_level: number | null
           text: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          has_outlets?: boolean | null
           id?: string
           place_id: string
           rating: number
+          silence_level?: number | null
           text?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
+          has_outlets?: boolean | null
           id?: string
           place_id?: string
           rating?: number
+          silence_level?: number | null
           text?: string | null
           user_id?: string
         }
