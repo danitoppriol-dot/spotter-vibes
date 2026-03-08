@@ -345,7 +345,8 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="spot-desc">Why is this spot great?</Label>
-                <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} />
+                <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} maxLength={2000} />
+                <p className="text-xs text-muted-foreground text-right">{description.length}/2000</p>
               </div>
 
               {/* Temporary pin */}
