@@ -34,6 +34,8 @@ const Profile = () => {
   const [isMapPublic, setIsMapPublic] = useState(false);
   const [isNamePublic, setIsNamePublic] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
 
   useEffect(() => {
     if (!profileUserId && !shareToken) return;
