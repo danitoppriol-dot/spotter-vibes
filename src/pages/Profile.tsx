@@ -89,6 +89,7 @@ const Profile = () => {
     setProfile(profileData);
     setIsMapPublic(profileData.is_map_public || false);
     setIsNamePublic(profileData.is_name_public || false);
+    setMapTitle(profileData.map_title || '');
 
     const canViewMap = isOwnProfile || isSharedView || profileData.is_map_public;
     if (!canViewMap) { setLoading(false); return; }
