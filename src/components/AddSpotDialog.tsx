@@ -119,10 +119,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       toast({ title: 'Select a layer', description: 'Please choose a map layer for this spot.', variant: 'destructive' });
       return;
     }
-    if (!photoFile) {
-      toast({ title: 'Photo required', description: 'Please upload at least one photo of the spot.', variant: 'destructive' });
-      return;
-    }
+    // Photo is optional — no validation needed
 
     // Check questionnaire completeness
     const requiredFields = QUESTIONNAIRES[category as MapLayer] || [];
@@ -134,18 +131,19 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
 
     setIsSubmitting(true);
 
-    // Upload photo
     let photoUrl: string | null = null;
-    const ext = photoFile.name.split('.').pop() || 'jpg';
-    const path = `${user.id}/${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('place-photos').upload(path, photoFile);
-    if (uploadError) {
-      toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
-      setIsSubmitting(false);
-      return;
+    if (photoFile) {
+      const ext = photoFile.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('place-photos').upload(path, photoFile);
+      if (uploadError) {
+        toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('place-photos').getPublicUrl(path);
+      photoUrl = urlData.publicUrl;
     }
-    const { data: urlData } = supabase.storage.from('place-photos').getPublicUrl(path);
-    photoUrl = urlData.publicUrl;
 
     const expiresAt = isTemporary
       ? new Date(Date.now() + parseInt(expiryHours) * 60 * 60 * 1000).toISOString()
@@ -313,42 +311,6 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Photo upload */}
-              <div className="space-y-2">
-                <Label>Photo *</Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoChange}
-                />
-                {photoPreview ? (
-                  <div className="relative">
-                    <img src={photoPreview} alt="Preview" className="h-40 w-full rounded-lg object-cover" />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="absolute bottom-2 right-2 gap-1"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Camera className="h-3 w-3" /> Change
-                    </Button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition-colors hover:bg-muted/50"
-                  >
-                    <Upload className="h-6 w-6" />
-                    <span className="text-sm">Upload a photo of the spot</span>
-                    <span className="text-xs">Max 5MB</span>
-                  </button>
-                )}
-              </div>
-
               {/* Questionnaire */}
               {category && QUESTIONNAIRES[category as MapLayer]?.map((field) => (
                 <div key={field.id} className="space-y-2">
@@ -366,6 +328,12 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                   </Select>
                 </div>
               ))}
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="spot-desc">Why is this spot great?</Label>
+                <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} />
+              </div>
 
               {/* Temporary pin */}
               <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
@@ -390,10 +358,39 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                 )}
               </div>
 
-              {/* Description */}
+              {/* Photo upload — optional, at the bottom */}
               <div className="space-y-2">
-                <Label htmlFor="spot-desc">Why is this spot great?</Label>
-                <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} />
+                <Label>Photo <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+                {photoPreview ? (
+                  <div className="relative">
+                    <img src={photoPreview} alt="Preview" className="h-40 w-full rounded-lg object-cover" />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="absolute bottom-2 right-2 gap-1"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Camera className="h-3 w-3" /> Change
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition-colors hover:bg-muted/50"
+                  >
+                    <Upload className="h-5 w-5" />
+                    <span className="text-xs">Add a photo (max 5MB)</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex gap-2">
