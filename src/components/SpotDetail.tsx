@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Spot, CATEGORIES, LAYERS, MapLayer } from '@/lib/mockData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2, Timer, Flag, Pencil, Trash2 } from 'lucide-react';
+import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2, Timer, Flag, Pencil, Trash2, Zap, Volume2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
