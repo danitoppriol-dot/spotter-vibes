@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Mail, ArrowRight, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthDialogProps {
   open: boolean;
