@@ -21,6 +21,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          filters: Json | null
           google_maps_url: string | null
           id: string
           is_visible: boolean
@@ -29,6 +30,7 @@ export type Database = {
           name: string
           opening_hours: string | null
           recommendation_count: number
+          sub_category: string | null
         }
         Insert: {
           address: string
@@ -36,6 +38,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          filters?: Json | null
           google_maps_url?: string | null
           id?: string
           is_visible?: boolean
@@ -44,6 +47,7 @@ export type Database = {
           name: string
           opening_hours?: string | null
           recommendation_count?: number
+          sub_category?: string | null
         }
         Update: {
           address?: string
@@ -51,6 +55,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          filters?: Json | null
           google_maps_url?: string | null
           id?: string
           is_visible?: boolean
@@ -59,6 +64,7 @@ export type Database = {
           name?: string
           opening_hours?: string | null
           recommendation_count?: number
+          sub_category?: string | null
         }
         Relationships: []
       }

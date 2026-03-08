@@ -1,34 +1,28 @@
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { Spot, SpotCategory } from '@/lib/mockData';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Loader } from '@googlemaps/js-api-loader';
+import { Spot, MapLayer } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
-const CATEGORY_COLORS: Record<SpotCategory, string> = {
-  study: '#2563eb',
-  nightlife: '#8b5cf6',
-  cafe: '#d97706',
-  cowork: '#0d9488',
-  outdoor: '#16a34a',
+const LAYER_COLORS: Record<MapLayer, string> = {
+  study: '#00d4ff',
+  nightlife: '#a855f7',
+  outdoor: '#22c55e',
 };
 
-function createCategoryIcon(category: SpotCategory, trending: boolean, isLight: boolean = false) {
-  const color = CATEGORY_COLORS[category];
-  const size = trending ? 16 : 12;
-  const opacity = isLight ? 0.35 : 1;
-  const pulse = trending && !isLight
-    ? `<div style="position:absolute;top:-4px;left:-4px;width:${size + 8}px;height:${size + 8}px;border-radius:50%;background:${color};opacity:0.3;animation:pulse-dot 2s ease-in-out infinite;"></div>`
-    : '';
-
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;opacity:${opacity};">
-      ${pulse}
-      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);position:relative;z-index:1;"></div>
-    </div>`,
-    iconSize: [size + 8, size + 8],
-    iconAnchor: [(size + 8) / 2, (size + 8) / 2],
-  });
-}
+const DARK_MAP_STYLES = [
+  { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#555570' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#2a2a3e' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#252540' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a1a2e' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#2e2e4a' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d0d1a' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#1e1e32' }] },
+  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1a2e1a' }] },
+];
 
 interface MapViewProps {
   spots: Spot[];
@@ -36,63 +30,167 @@ interface MapViewProps {
   center?: [number, number];
 }
 
+let cachedApiKey: string | null = null;
+let mapsLoaded = false;
+
 const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewProps) => {
-  const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const markersRef = useRef<L.LayerGroup | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    let cancelled = false;
 
-    const map = L.map(containerRef.current, {
-      center,
-      zoom: 13,
-      zoomControl: false,
-    });
+    const init = async () => {
+      if (!containerRef.current) return;
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-    }).addTo(map);
+      try {
+        // Fetch API key if not cached
+        if (!cachedApiKey) {
+          const { data, error: fnError } = await supabase.functions.invoke('get-maps-key');
+          if (fnError || !data?.key) {
+            setError('Could not load map');
+            setLoading(false);
+            return;
+          }
+          cachedApiKey = data.key;
+        }
 
-    markersRef.current = L.layerGroup().addTo(map);
-    mapRef.current = map;
+        if (cancelled) return;
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
+        // Load Google Maps if not already loaded
+        if (!mapsLoaded) {
+          const loader = new Loader({
+            apiKey: cachedApiKey,
+            version: 'weekly',
+          });
+          await loader.importLibrary('maps');
+          await loader.importLibrary('marker');
+          mapsLoaded = true;
+        }
+
+        if (cancelled || !containerRef.current) return;
+
+        const map = new google.maps.Map(containerRef.current, {
+          center: { lat: center[0], lng: center[1] },
+          zoom: 13,
+          styles: DARK_MAP_STYLES,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: 'greedy',
+          backgroundColor: '#1a1a2e',
+        });
+
+        mapRef.current = map;
+        setLoading(false);
+      } catch (err) {
+        console.error('Google Maps init error:', err);
+        setError('Failed to load map');
+        setLoading(false);
+      }
     };
+
+    init();
+    return () => { cancelled = true; };
   }, []);
 
   // Update center
   useEffect(() => {
     if (mapRef.current) {
-      mapRef.current.flyTo(center, 14, { duration: 0.8 });
+      mapRef.current.panTo({ lat: center[0], lng: center[1] });
     }
   }, [center]);
 
   // Update markers
   useEffect(() => {
-    if (!markersRef.current) return;
-    markersRef.current.clearLayers();
+    if (!mapRef.current) return;
+
+    // Clear old markers
+    markersRef.current.forEach((m) => m.setMap(null));
+    markersRef.current = [];
 
     spots.forEach((spot) => {
-      const isLight = spot.recommendations < 5;
-      const marker = L.marker([spot.lat, spot.lng], {
-        icon: createCategoryIcon(spot.category, spot.trending, isLight),
+      const isOfficial = spot.isOfficial;
+      const color = LAYER_COLORS[spot.category as MapLayer] || '#00d4ff';
+
+      const marker = new google.maps.Marker({
+        position: { lat: spot.lat, lng: spot.lng },
+        map: mapRef.current!,
+        opacity: isOfficial ? 1 : 0.45,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: color,
+          fillOpacity: 1,
+          strokeColor: isOfficial ? '#ffffff' : 'rgba(255,255,255,0.5)',
+          strokeWeight: isOfficial ? 2.5 : 1.5,
+          scale: spot.trending ? 11 : 8,
+        },
+        title: spot.name,
+        zIndex: spot.trending ? 10 : isOfficial ? 5 : 1,
       });
 
-      marker.bindPopup(
-        `<div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;">${spot.name}</div>
-         <div style="font-size:11px;color:#64748b;">${spot.address}</div>`
-      );
+      // Pulse effect for trending
+      if (spot.trending && isOfficial) {
+        const pulseMarker = new google.maps.Marker({
+          position: { lat: spot.lat, lng: spot.lng },
+          map: mapRef.current!,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: color,
+            fillOpacity: 0.15,
+            strokeColor: color,
+            strokeWeight: 1,
+            scale: 18,
+          },
+          clickable: false,
+          zIndex: 0,
+        });
+        markersRef.current.push(pulseMarker);
+      }
 
-      marker.on('click', () => onSpotClick(spot));
-      markersRef.current!.addLayer(marker);
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="font-family:'Space Grotesk',sans-serif;padding:4px 0;">
+            <div style="font-size:14px;font-weight:600;color:#0a0a14;">${spot.name}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px;">${spot.address}</div>
+            ${!isOfficial ? '<div style="font-size:11px;color:#a855f7;margin-top:4px;">👻 Unconfirmed — needs more endorsements</div>' : ''}
+          </div>
+        `,
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(mapRef.current!, marker);
+        onSpotClick(spot);
+      });
+
+      markersRef.current.push(marker);
     });
   }, [spots, onSpotClick]);
 
-  return <div ref={containerRef} className="h-full w-full rounded-lg" style={{ zIndex: 0 }} />;
+  if (error) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      {loading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="text-xs text-muted-foreground">Loading map...</span>
+          </div>
+        </div>
+      )}
+      <div ref={containerRef} className="h-full w-full rounded-lg" style={{ zIndex: 0 }} />
+    </div>
+  );
 };
 
 export default MapView;
