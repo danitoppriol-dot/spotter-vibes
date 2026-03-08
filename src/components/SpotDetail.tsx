@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Spot, CATEGORIES } from '@/lib/mockData';
+import { Spot, CATEGORIES, LAYERS, MapLayer } from '@/lib/mockData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2, Timer } from 'lucide-react';
+import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2, Timer, Flag, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthDialog from '@/components/AuthDialog';
@@ -42,7 +44,6 @@ function StarRating({ rating, interactive, onRate }: { rating: number; interacti
   );
 }
 
-// Haversine distance in meters
 function getDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -69,14 +70,30 @@ function useCountdown(expiresAt?: string | null) {
   return timeLeft;
 }
 
+const REPORT_REASONS = [
+  'Incorrect information',
+  'Inappropriate content',
+  'Spam / fake place',
+  'Closed permanently',
+  'Duplicate spot',
+  'Other',
+];
+
 const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
+  const [reportReason, setReportReason] = useState('');
+  const [reportDetails, setReportDetails] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savingToggle, setSavingToggle] = useState(false);
+  const [createdBy, setCreatedBy] = useState<string | null>(null);
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
   const countdown = useCountdown(spot?.expiresAt);
@@ -89,7 +106,17 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
       .eq('user_id', user.id)
       .eq('place_id', spot.id)
       .then(({ data }: any) => setIsSaved((data || []).length > 0));
+
+    // Check if user owns this spot
+    supabase
+      .from('places')
+      .select('created_by')
+      .eq('id', spot.id)
+      .single()
+      .then(({ data }: any) => setCreatedBy(data?.created_by || null));
   }, [user, spot?.id]);
+
+  const isOwner = user && createdBy === user.id;
 
   const handleToggleSave = async () => {
     if (!isLoggedIn || !user) { setAuthOpen(true); return; }
@@ -113,8 +140,6 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
 
   const handleRecommend = async () => {
     if (!isLoggedIn || !user) { setAuthOpen(true); return; }
-
-    // Geofencing: must be within 500m
     try {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
@@ -128,13 +153,10 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
         });
         return;
       }
-    } catch {
-      // If geolocation fails, allow the endorse (graceful degradation)
-    }
+    } catch { /* graceful degradation */ }
 
     const { error } = await supabase.from('recommendations').insert({
-      user_id: user.id,
-      place_id: spot.id,
+      user_id: user.id, place_id: spot.id,
     } as any);
     if (error) {
       if (error.code === '23505') {
@@ -161,10 +183,7 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
     }
     setIsSubmitting(true);
     const { error } = await supabase.from('reviews').insert({
-      user_id: user.id,
-      place_id: spot.id,
-      rating: reviewRating,
-      text: reviewText || null,
+      user_id: user.id, place_id: spot.id, rating: reviewRating, text: reviewText || null,
     } as any);
     setIsSubmitting(false);
     if (error) {
@@ -178,11 +197,71 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
     onUpdate?.();
   };
 
+  const handleReport = async () => {
+    if (!isLoggedIn || !user) { setAuthOpen(true); return; }
+    if (!reportReason) {
+      toast({ title: 'Select a reason', variant: 'destructive' });
+      return;
+    }
+    setIsSubmitting(true);
+    const { error } = await (supabase.from('reports').insert({
+      user_id: user.id, place_id: spot.id, reason: reportReason, details: reportDetails || null,
+    } as any) as any);
+    setIsSubmitting(false);
+    if (error) {
+      if (error.code === '23505') {
+        toast({ title: 'Already reported', description: 'You already reported this spot.' });
+      } else {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      }
+    } else {
+      toast({ title: 'Spot reported 🚩', description: 'Thanks! A moderator will review it.' });
+    }
+    setShowReportForm(false);
+    setReportReason('');
+    setReportDetails('');
+  };
+
+  const handleEdit = async () => {
+    if (!user || !isOwner) return;
+    setIsSubmitting(true);
+    const { error } = await supabase.from('places')
+      .update({ name: editName, description: editDescription } as any)
+      .eq('id', spot.id);
+    setIsSubmitting(false);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Spot updated ✏️' });
+    setShowEditForm(false);
+    onUpdate?.();
+  };
+
+  const handleDelete = async () => {
+    if (!user || !isOwner) return;
+    if (!confirm(`Delete "${spot.name}"? This cannot be undone.`)) return;
+    const { error } = await supabase.from('places').delete().eq('id', spot.id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Spot deleted 🗑️' });
+    onClose();
+    onUpdate?.();
+  };
+
+  const openEdit = () => {
+    setEditName(spot.name);
+    setEditDescription(spot.description);
+    setShowEditForm(true);
+  };
+
   const googleMapsUrl = spot.googleMapsUrl || `https://maps.google.com/?q=${spot.lat},${spot.lng}`;
 
   return (
     <>
-      <Sheet open={open} onOpenChange={(o) => { if (!o) { onClose(); setShowReviewForm(false); } }}>
+      <Sheet open={open} onOpenChange={(o) => { if (!o) { onClose(); setShowReviewForm(false); setShowReportForm(false); setShowEditForm(false); } }}>
         <SheetContent className="overflow-y-auto sm:max-w-md">
           <SheetHeader className="pb-4">
             <div className="space-y-2">
@@ -215,7 +294,6 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
           </SheetHeader>
 
           <div className="space-y-5">
-            {/* Photo */}
             {spot.photoUrl && (
               <img src={spot.photoUrl} alt={spot.name} className="h-44 w-full rounded-lg object-cover" />
             )}
@@ -248,7 +326,6 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
               </div>
             </div>
 
-            {/* Questionnaire info */}
             {spot.questionnaire && Object.keys(spot.questionnaire).length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {Object.entries(spot.questionnaire).map(([key, value]) => (
@@ -269,6 +346,7 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
 
             <p className="text-sm leading-relaxed text-foreground/80">{spot.description}</p>
 
+            {/* Action buttons */}
             <div className="flex gap-2">
               <Button className="flex-1 gap-2 bg-gradient-hero" onClick={handleRecommend}>
                 <ThumbsUp className="h-4 w-4" /> Endorse
@@ -283,9 +361,85 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                 {isSaved ? 'Saved' : 'Save'}
               </Button>
             </div>
-            <Button variant="outline" className="w-full" onClick={handleOpenReview}>
-              Write Review
-            </Button>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={handleOpenReview}>
+                Write Review
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={() => { if (!isLoggedIn) { setAuthOpen(true); return; } setShowReportForm(true); }}
+                title="Report spot"
+              >
+                <Flag className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Owner actions */}
+            {isOwner && (
+              <div className="flex gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={openEdit}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-destructive hover:text-destructive" onClick={handleDelete}>
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </Button>
+              </div>
+            )}
+
+            {/* Edit form */}
+            {showEditForm && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                <h4 className="font-display text-sm font-semibold">Edit Spot</h4>
+                <div className="space-y-1">
+                  <Label className="text-xs">Name</Label>
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Description</Label>
+                  <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" className="gap-1.5 bg-gradient-hero" onClick={handleEdit} disabled={isSubmitting}>
+                    {isSubmitting ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowEditForm(false)}>Cancel</Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Report form */}
+            {showReportForm && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                className="space-y-3 rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                <h4 className="font-display text-sm font-semibold">Report Spot</h4>
+                <div className="space-y-1">
+                  <Label className="text-xs">Reason *</Label>
+                  <Select value={reportReason} onValueChange={setReportReason}>
+                    <SelectTrigger><SelectValue placeholder="Select a reason" /></SelectTrigger>
+                    <SelectContent>
+                      {REPORT_REASONS.map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Details (optional)</Label>
+                  <Textarea value={reportDetails} onChange={(e) => setReportDetails(e.target.value)}
+                    placeholder="Any additional details..." rows={2} />
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="destructive" className="gap-1.5" onClick={handleReport} disabled={isSubmitting}>
+                    <Flag className="h-3 w-3" /> {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowReportForm(false)}>Cancel</Button>
+                </div>
+              </motion.div>
+            )}
 
             <Button variant="outline" className="w-full gap-2" asChild>
               <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Mail, ArrowRight, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthDialogProps {
   open: boolean;
@@ -61,7 +62,7 @@ function isAllowedDomain(email: string): boolean {
 }
 
 const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,6 +71,21 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (mode === 'forgot') {
+      setIsSubmitting(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setIsSubmitting(false);
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Check your email! 📧', description: `Password reset link sent to ${email}.` });
+        onOpenChange(false);
+      }
+      return;
+    }
 
     if (mode === 'signup' && !isAllowedDomain(email)) {
       toast({
@@ -111,12 +127,14 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-lg">
-            {mode === 'signin' ? 'Sign in to Spotter' : 'Join Spotter'}
+            {mode === 'signin' ? 'Sign in to Spotter' : mode === 'signup' ? 'Join Spotter' : 'Reset Password'}
           </DialogTitle>
           <DialogDescription>
             {mode === 'signin'
               ? 'Welcome back! Sign in with your email.'
-              : 'Use your university email (.edu or equivalent) to join.'}
+              : mode === 'signup'
+              ? 'Use your university email (.edu or equivalent) to join.'
+              : 'Enter your email and we\'ll send you a reset link.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -140,26 +158,35 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
               </p>
             )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="auth-password">Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="auth-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'signup' ? 'Create a password (6+ chars)' : 'Your password'}
-                className="pl-9"
-                minLength={6}
-                required
-              />
+          {mode !== 'forgot' && (
+            <div className="space-y-2">
+              <Label htmlFor="auth-password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="auth-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === 'signup' ? 'Create a password (6+ chars)' : 'Your password'}
+                  className="pl-9"
+                  minLength={6}
+                  required
+                />
+              </div>
             </div>
-          </div>
+          )}
           <Button type="submit" className="w-full gap-2 bg-gradient-hero shadow-glow" disabled={isSubmitting}>
-            {isSubmitting ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Sign Up'}
+            {isSubmitting ? 'Loading...' : mode === 'signin' ? 'Sign In' : mode === 'signup' ? 'Sign Up' : 'Send Reset Link'}
             <ArrowRight className="h-4 w-4" />
           </Button>
+          {mode === 'signin' && (
+            <p className="text-center text-xs text-muted-foreground">
+              <button type="button" className="text-primary underline" onClick={() => setMode('forgot')}>
+                Forgot password?
+              </button>
+            </p>
+          )}
           <p className="text-center text-sm text-muted-foreground">
             {mode === 'signin' ? (
               <>Don't have an account?{' '}
@@ -167,8 +194,14 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                   Sign up
                 </button>
               </>
-            ) : (
+            ) : mode === 'signup' ? (
               <>Already have an account?{' '}
+                <button type="button" className="text-primary underline" onClick={() => setMode('signin')}>
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>Back to{' '}
                 <button type="button" className="text-primary underline" onClick={() => setMode('signin')}>
                   Sign in
                 </button>

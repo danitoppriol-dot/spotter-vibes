@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Map, List, Star, MapPin, Lock, Globe, Eye, EyeOff, Heart, Share2, Copy, Check } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Map, List, Star, MapPin, Lock, Globe, Eye, EyeOff, Heart, Share2, Copy, Check, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
@@ -33,6 +34,8 @@ const Profile = () => {
   const [isMapPublic, setIsMapPublic] = useState(false);
   const [isNamePublic, setIsNamePublic] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
 
   useEffect(() => {
     if (!profileUserId && !shareToken) return;
@@ -131,6 +134,14 @@ const Profile = () => {
     toast({ title: value ? 'Name visible' : 'Name hidden' });
   };
 
+  const handleSaveDisplayName = async () => {
+    if (!newDisplayName.trim()) return;
+    await supabase.from('profiles').update({ display_name: newDisplayName.trim() } as any).eq('user_id', user!.id);
+    setProfile((p: any) => ({ ...p, display_name: newDisplayName.trim() }));
+    setEditingName(false);
+    toast({ title: 'Name updated ✏️' });
+  };
+
   const handleShareLink = async () => {
     if (!profile?.share_token) return;
     const url = `${window.location.origin}/shared/${profile.share_token}`;
@@ -168,7 +179,30 @@ const Profile = () => {
       <div className="container flex-1 overflow-y-auto py-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <h1 className="font-display text-2xl font-bold">{displayName}</h1>
+            <div className="flex items-center gap-2">
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newDisplayName}
+                    onChange={(e) => setNewDisplayName(e.target.value)}
+                    className="h-8 w-48 text-lg font-bold"
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveDisplayName()}
+                  />
+                  <Button size="sm" variant="ghost" onClick={handleSaveDisplayName}>Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingName(false)}>Cancel</Button>
+                </div>
+              ) : (
+                <>
+                  <h1 className="font-display text-2xl font-bold">{displayName}</h1>
+                  {isOwnProfile && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setNewDisplayName(profile?.display_name || ''); setEditingName(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               {profile?.university && <span>📧 {profile.university}</span>}
               <span>·</span>
