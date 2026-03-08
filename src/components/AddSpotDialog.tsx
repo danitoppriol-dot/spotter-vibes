@@ -86,6 +86,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       } catch (err) {
         console.error('Place search failed:', err);
         setSearchResults([]);
+        toast({ title: 'Search failed', description: 'Could not search places. Try again later.', variant: 'destructive' });
       } finally {
         setIsSearching(false);
       }
