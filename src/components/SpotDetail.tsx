@@ -86,6 +86,8 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
+  const [reviewHasOutlets, setReviewHasOutlets] = useState(false);
+  const [reviewSilenceLevel, setReviewSilenceLevel] = useState(0);
   const [reportReason, setReportReason] = useState('');
   const [reportDetails, setReportDetails] = useState('');
   const [editName, setEditName] = useState('');
