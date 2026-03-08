@@ -191,6 +191,8 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     setQuestionnaire({});
     setPhotoFile(null);
     setPhotoPreview(null);
+    setIsTemporary(false);
+    setExpiryHours('12');
     setStep('search');
   };
 

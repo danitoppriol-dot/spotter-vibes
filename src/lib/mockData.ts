@@ -76,6 +76,7 @@ export interface Spot {
   openingHours?: string;
   googleMapsUrl?: string;
   filters?: Record<string, string>;
+  expiresAt?: string | null;
   reviews: Review[];
 }
 
