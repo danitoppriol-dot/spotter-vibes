@@ -366,6 +366,29 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                 </div>
               ))}
 
+              {/* Temporary pin */}
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                <div className="flex items-center gap-3">
+                  <Switch checked={isTemporary} onCheckedChange={setIsTemporary} />
+                  <Label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <Clock className="h-3.5 w-3.5" /> Temporary pin
+                  </Label>
+                </div>
+                {isTemporary && (
+                  <div className="space-y-1 pl-10">
+                    <Label className="text-xs text-muted-foreground">Expires after</Label>
+                    <Select value={expiryHours} onValueChange={setExpiryHours}>
+                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="6">6 hours</SelectItem>
+                        <SelectItem value="12">12 hours</SelectItem>
+                        <SelectItem value="24">24 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="spot-desc">Why is this spot great?</Label>
