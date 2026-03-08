@@ -5,24 +5,25 @@ import { Spot, MapLayer } from '@/lib/mockData';
 import { supabase } from '@/integrations/supabase/client';
 
 const LAYER_COLORS: Record<MapLayer, string> = {
-  study: '#00d4ff',
-  nightlife: '#a855f7',
-  outdoor: '#22c55e',
+  study: '#3b6fd4',
+  nightlife: '#9333ea',
+  outdoor: '#16a34a',
 };
 
-const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#555570' }] },
-  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#2a2a3e' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#252540' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a1a2e' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#2e2e4a' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d0d1a' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#1e1e32' }] },
+// Clean, light map style – Nordic inspired
+const LIGHT_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#666680' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#d4d4e0' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e8e8f0' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#edeef5' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c8ddf0' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#e8ede8' }] },
   { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1a2e1a' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#dceedd' }] },
 ];
 
 interface MapViewProps {
@@ -75,11 +76,11 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
         const map = new google.maps.Map(containerRef.current, {
           center: { lat: center[0], lng: center[1] },
           zoom: 13,
-          styles: DARK_MAP_STYLES,
+          styles: LIGHT_MAP_STYLES,
           disableDefaultUI: true,
           zoomControl: true,
           gestureHandling: 'greedy',
-          backgroundColor: '#1a1a2e',
+          backgroundColor: '#f5f5f5',
         });
 
         mapRef.current = map;
@@ -109,7 +110,7 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
 
     spots.forEach((spot) => {
       const isOfficial = spot.isOfficial;
-      const color = LAYER_COLORS[spot.category as MapLayer] || '#00d4ff';
+      const color = LAYER_COLORS[spot.category as MapLayer] || '#3b6fd4';
 
       const marker = new google.maps.Marker({
         position: { lat: spot.lat, lng: spot.lng },
@@ -119,7 +120,7 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
           path: google.maps.SymbolPath.CIRCLE,
           fillColor: color,
           fillOpacity: 1,
-          strokeColor: isOfficial ? '#ffffff' : 'rgba(255,255,255,0.5)',
+          strokeColor: isOfficial ? '#ffffff' : 'rgba(255,255,255,0.7)',
           strokeWeight: isOfficial ? 2.5 : 1.5,
           scale: spot.trending ? 11 : 8,
         },
@@ -134,7 +135,7 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             fillColor: color,
-            fillOpacity: 0.15,
+            fillOpacity: 0.12,
             strokeColor: color,
             strokeWeight: 1,
             scale: 18,
@@ -148,9 +149,9 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
       const infoWindow = new google.maps.InfoWindow({
         content: `
           <div style="font-family:'Space Grotesk',sans-serif;padding:4px 0;">
-            <div style="font-size:14px;font-weight:600;color:#0a0a14;">${spot.name}</div>
+            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">${spot.name}</div>
             <div style="font-size:12px;color:#6b7280;margin-top:2px;">${spot.address}</div>
-            ${!isOfficial ? '<div style="font-size:11px;color:#a855f7;margin-top:4px;">👻 Unconfirmed</div>' : ''}
+            ${!isOfficial ? '<div style="font-size:11px;color:#9333ea;margin-top:4px;">👻 Unconfirmed</div>' : ''}
           </div>
         `,
       });
