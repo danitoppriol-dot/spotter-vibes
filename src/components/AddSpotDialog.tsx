@@ -54,6 +54,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
   const [description, setDescription] = useState('');
   const [mapType, setMapType] = useState<'personal' | 'general' | 'both'>('both');
   const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({});
+  const [rating, setRating] = useState<number>(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isTemporary, setIsTemporary] = useState(false);
