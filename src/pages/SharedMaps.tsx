@@ -86,7 +86,6 @@ const SharedMaps = () => {
     }
 
     const result: PublicProfile[] = publicProfiles
-      .filter((p: any) => p.user_id !== user?.id) // exclude own profile
       .map((p: any) => {
         const rData = ratingMap.get(p.user_id);
         return {
