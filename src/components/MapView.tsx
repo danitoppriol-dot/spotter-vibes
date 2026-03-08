@@ -67,8 +67,8 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
           });
         }
 
-        await loaderInstance.importLibrary('maps');
-        await loaderInstance.importLibrary('marker');
+        await (loaderInstance as any).importLibrary('maps');
+        await (loaderInstance as any).importLibrary('marker');
 
         if (cancelled || !containerRef.current) return;
 
