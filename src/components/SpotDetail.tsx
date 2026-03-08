@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Spot, CATEGORIES } from '@/lib/mockData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart } from 'lucide-react';
+import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -53,7 +53,6 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
 
-  // Check if spot is saved
   useEffect(() => {
     if (!user || !spot) return;
     supabase
@@ -71,11 +70,11 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
     if (isSaved) {
       await supabase.from('saved_places').delete().eq('user_id', user.id).eq('place_id', spot.id);
       setIsSaved(false);
-      toast({ title: 'Rimosso dai preferiti' });
+      toast({ title: 'Removed from favorites' });
     } else {
       await (supabase.from('saved_places').insert({ user_id: user.id, place_id: spot.id } as any) as any);
       setIsSaved(true);
-      toast({ title: 'Salvato nei preferiti ❤️' });
+      toast({ title: 'Saved to favorites ❤️' });
     }
     setSavingToggle(false);
   };
@@ -86,12 +85,10 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
 
   const handleRecommend = async () => {
     if (!isLoggedIn || !user) { setAuthOpen(true); return; }
-    
     const { error } = await supabase.from('recommendations').insert({
       user_id: user.id,
       place_id: spot.id,
     } as any);
-
     if (error) {
       if (error.code === '23505') {
         toast({ title: 'Already recommended', description: 'You already endorsed this spot!' });
@@ -123,12 +120,11 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
       text: reviewText || null,
     } as any);
     setIsSubmitting(false);
-
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Review submitted! ✍️', description: 'Thanks for sharing your experience.' });
+    toast({ title: 'Review submitted! ✍️' });
     setShowReviewForm(false);
     setReviewRating(0);
     setReviewText('');
@@ -142,12 +138,21 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
       <Sheet open={open} onOpenChange={(o) => { if (!o) { onClose(); setShowReviewForm(false); } }}>
         <SheetContent className="overflow-y-auto sm:max-w-md">
           <SheetHeader className="pb-4">
-            <div className="space-y-1">
+            <div className="space-y-2">
               <SheetTitle className="font-display text-xl">{spot.name}</SheetTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary" className={`${category?.color} text-primary-foreground`}>
                   {category?.icon} {category?.label}
                 </Badge>
+                {spot.isOfficial ? (
+                  <Badge variant="outline" className="gap-1 border-accent text-accent">
+                    <CheckCircle2 className="h-3 w-3" /> Official
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="gap-1 border-muted-foreground/50 text-muted-foreground">
+                    <Ghost className="h-3 w-3" /> Unconfirmed
+                  </Badge>
+                )}
                 {spot.trending && (
                   <Badge variant="outline" className="gap-1 border-secondary text-secondary">
                     <TrendingUp className="h-3 w-3" /> Trending
@@ -186,11 +191,19 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
               </div>
             </div>
 
+            {!spot.isOfficial && (
+              <div className="rounded-lg border border-muted bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">
+                  👻 This spot is <strong>unconfirmed</strong>. It needs {Math.max(0, 4 - spot.recommendations)} more endorsements or a ≥3.5 rating to become official.
+                </p>
+              </div>
+            )}
+
             <p className="text-sm leading-relaxed text-foreground/80">{spot.description}</p>
 
             <div className="flex gap-2">
-              <Button className="flex-1 gap-2" onClick={handleRecommend}>
-                <ThumbsUp className="h-4 w-4" /> Recommend
+              <Button className="flex-1 gap-2 bg-gradient-hero" onClick={handleRecommend}>
+                <ThumbsUp className="h-4 w-4" /> Endorse
               </Button>
               <Button
                 variant={isSaved ? 'secondary' : 'outline'}
@@ -199,7 +212,7 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                 disabled={savingToggle}
               >
                 <Heart className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
-                {isSaved ? 'Salvato' : 'Salva'}
+                {isSaved ? 'Saved' : 'Save'}
               </Button>
             </div>
             <Button variant="outline" className="w-full" onClick={handleOpenReview}>
@@ -226,7 +239,7 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                     placeholder="What did you like about this place?" rows={3} />
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" className="gap-1.5" onClick={handleSubmitReview} disabled={isSubmitting}>
+                  <Button size="sm" className="gap-1.5 bg-gradient-hero" onClick={handleSubmitReview} disabled={isSubmitting}>
                     <Send className="h-3 w-3" /> {isSubmitting ? 'Submitting...' : 'Submit'}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setShowReviewForm(false)}>Cancel</Button>

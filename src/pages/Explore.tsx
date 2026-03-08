@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { CATEGORIES, Spot, SpotCategory } from '@/lib/mockData';
+import { LAYERS, Spot, MapLayer, isSpotOfficial } from '@/lib/mockData';
 import MapView from '@/components/MapView';
 import LayerFilter from '@/components/LayerFilter';
 import SpotDetail from '@/components/SpotDetail';
@@ -15,8 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Explore = () => {
   const { isModerator } = useAuth();
-  const [activeCategories, setActiveCategories] = useState<SpotCategory[]>(
-    CATEGORIES.map((c) => c.id)
+  const [activeCategories, setActiveCategories] = useState<MapLayer[]>(
+    LAYERS.map((l) => l.id)
   );
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,7 +28,6 @@ const Explore = () => {
   const fetchSpots = useCallback(async () => {
     setLoading(true);
     const query = supabase.from('places').select('*');
-    // Moderators see all places, normal users see only visible ones
     if (!isModerator) {
       (query as any).eq('is_visible', true);
     }
@@ -40,9 +39,8 @@ const Explore = () => {
       return;
     }
 
-    // Fetch reviews for visible places
     const placeIds: string[] = places.map((p: any) => p.id);
-    
+
     if (placeIds.length === 0) {
       setDbSpots([]);
       setLoading(false);
@@ -54,7 +52,6 @@ const Explore = () => {
       .select('*')
       .in('place_id', placeIds) as any;
 
-    // Fetch profile names for reviews
     const userIds: string[] = (reviews || []).map((r: any) => String(r.user_id)).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i);
     const { data: profiles } = userIds.length > 0
       ? await (supabase.from('profiles').select('user_id, display_name').in('user_id', userIds) as any)
@@ -71,7 +68,7 @@ const Explore = () => {
       return {
         id: p.id,
         name: p.name,
-        category: p.category as SpotCategory,
+        category: p.category as MapLayer,
         lat: p.lat,
         lng: p.lng,
         address: p.address,
@@ -81,8 +78,10 @@ const Explore = () => {
         reviewCount: placeReviews.length,
         isVisible: p.is_visible,
         trending: (p.recommendation_count || 0) >= 10,
+        isOfficial: isSpotOfficial(p.recommendation_count || 0, avgRating),
         openingHours: p.opening_hours,
         googleMapsUrl: p.google_maps_url,
+        filters: p.filters || {},
         reviews: placeReviews.map((r: any) => ({
           id: r.id,
           userName: profileMap.get(r.user_id) || 'Student',
@@ -99,24 +98,20 @@ const Explore = () => {
 
   useEffect(() => { fetchSpots(); }, [fetchSpots]);
 
-  // Use only real DB spots (mock spots removed to avoid UUID conflicts)
-  const allSpots = useMemo(() => dbSpots, [dbSpots]);
-
-  const toggleCategory = (cat: SpotCategory) => {
+  const toggleCategory = (cat: MapLayer) => {
     setActiveCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
   };
 
   const filteredSpots = useMemo(() => {
-    return allSpots.filter((s) => {
-      // Moderators see all, normal users only visible
+    return dbSpots.filter((s) => {
       if (!isModerator && !s.isVisible) return false;
       if (!activeCategories.includes(s.category)) return false;
       if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
-  }, [allSpots, activeCategories, searchQuery, isModerator]);
+  }, [dbSpots, activeCategories, searchQuery, isModerator]);
 
   const handleSpotClick = (spot: Spot) => {
     setSelectedSpot(spot);
@@ -128,7 +123,7 @@ const Explore = () => {
       <Navbar />
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-80 flex-col border-r bg-card md:flex">
+        <aside className="hidden w-80 flex-col border-r border-border/50 bg-card md:flex">
           <div className="space-y-4 p-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -144,7 +139,7 @@ const Explore = () => {
               <Button className="flex-1 gap-2 bg-gradient-hero shadow-glow" onClick={() => setAddSpotOpen(true)}>
                 <Plus className="h-4 w-4" /> Add Spot
               </Button>
-              {isModerator && <ModeratorPanel spots={allSpots} onUpdate={fetchSpots} />}
+              {isModerator && <ModeratorPanel spots={dbSpots} onUpdate={fetchSpots} />}
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-4 pt-0">
@@ -167,7 +162,7 @@ const Explore = () => {
               />
             </div>
             <Button className="gap-2 bg-gradient-hero shadow-glow" onClick={() => setAddSpotOpen(true)}>
-              <Plus className="h-4 w-4" /> Add Spot
+              <Plus className="h-4 w-4" /> Add
             </Button>
           </div>
         </div>

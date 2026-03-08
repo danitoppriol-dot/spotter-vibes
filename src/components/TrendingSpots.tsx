@@ -1,5 +1,5 @@
 import { Spot, CATEGORIES } from '@/lib/mockData';
-import { Star, ThumbsUp, TrendingUp } from 'lucide-react';
+import { Star, ThumbsUp, TrendingUp, Ghost, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 
@@ -9,18 +9,22 @@ interface TrendingSpotsProps {
 }
 
 const TrendingSpots = ({ spots, onSpotClick }: TrendingSpotsProps) => {
-  const trending = spots.filter((s) => s.trending).sort((a, b) => b.recommendations - a.recommendations);
+  const sorted = [...spots].sort((a, b) => b.recommendations - a.recommendations);
+  const trending = sorted.filter((s) => s.trending);
+  const recent = sorted.filter((s) => !s.trending).slice(0, 5);
+  const displaySpots = trending.length > 0 ? trending.slice(0, 5) : recent;
+  const title = trending.length > 0 ? 'Trending Now' : 'Recent Spots';
 
-  if (trending.length === 0) return null;
+  if (displaySpots.length === 0) return null;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 px-1">
         <TrendingUp className="h-4 w-4 text-secondary" />
-        <h3 className="font-display text-sm font-semibold">Trending Now</h3>
+        <h3 className="font-display text-sm font-semibold">{title}</h3>
       </div>
       <div className="space-y-2">
-        {trending.slice(0, 5).map((spot, i) => {
+        {displaySpots.map((spot, i) => {
           const cat = CATEGORIES.find((c) => c.id === spot.category);
           return (
             <motion.button
@@ -35,10 +39,17 @@ const TrendingSpots = ({ spots, onSpotClick }: TrendingSpotsProps) => {
                 {cat?.icon}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{spot.name}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="truncate text-sm font-medium">{spot.name}</p>
+                  {spot.isOfficial ? (
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-accent" />
+                  ) : (
+                    <Ghost className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  )}
+                </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-0.5">
-                    <Star className="h-3 w-3 fill-secondary text-secondary" /> {spot.rating}
+                    <Star className="h-3 w-3 fill-secondary text-secondary" /> {spot.rating > 0 ? spot.rating.toFixed(1) : '—'}
                   </span>
                   <span className="flex items-center gap-0.5">
                     <ThumbsUp className="h-3 w-3" /> {spot.recommendations}

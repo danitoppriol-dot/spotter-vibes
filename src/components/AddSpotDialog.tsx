@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CATEGORIES, SpotCategory } from '@/lib/mockData';
+import { LAYERS, MapLayer } from '@/lib/mockData';
 import { Mail, ArrowRight, Search, MapPin, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,7 +31,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [category, setCategory] = useState<SpotCategory | ''>('');
+  const [category, setCategory] = useState<MapLayer | ''>('');
   const [description, setDescription] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,7 +54,6 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
         const { data, error } = await supabase.functions.invoke('places-autocomplete', {
           body: { query: placeQuery },
         });
-
         if (error) throw error;
         setSearchResults(data?.results || []);
       } catch (err) {
@@ -72,16 +71,13 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoggedIn || !user) {
-      setAuthOpen(true);
-      return;
-    }
+    if (!isLoggedIn || !user) { setAuthOpen(true); return; }
     if (!selectedPlace) {
       toast({ title: 'Select a place', description: 'Search and select a place from the results.', variant: 'destructive' });
       return;
     }
     if (!category) {
-      toast({ title: 'Select a category', description: 'Please choose a category for this spot.', variant: 'destructive' });
+      toast({ title: 'Select a layer', description: 'Please choose a map layer for this spot.', variant: 'destructive' });
       return;
     }
 
@@ -106,7 +102,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
 
     toast({
       title: 'Spot submitted! 🎉',
-      description: `"${selectedPlace.name}" will appear on the map once 5 students recommend it.`,
+      description: `"${selectedPlace.name}" is now on the map. It becomes official after 4 endorsements.`,
     });
     onOpenChange(false);
     onSpotAdded?.();
@@ -127,18 +123,18 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg">Recommend a New Spot</DialogTitle>
+            <DialogTitle className="font-display text-lg">Recommend a Spot</DialogTitle>
             <DialogDescription>
               {isLoggedIn
-                ? 'Search for a place and recommend it. Spots appear on the map after 5 student recommendations.'
-                : 'You need to sign in first to recommend a spot.'}
+                ? 'Search for a place and add it to the map. Spots start transparent and become official after 4 endorsements.'
+                : 'Sign in with your university email to recommend spots.'}
             </DialogDescription>
           </DialogHeader>
 
           {!isLoggedIn ? (
             <div className="space-y-4 text-center">
               <p className="text-sm text-muted-foreground">
-                Sign in with your university or work email to start recommending spots.
+                Sign in with your university email to start recommending spots.
               </p>
               <Button className="w-full gap-2 bg-gradient-hero" onClick={() => { onOpenChange(false); setAuthOpen(true); }}>
                 <Mail className="h-4 w-4" /> Sign In to Continue <ArrowRight className="h-4 w-4" />
@@ -161,13 +157,13 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                   )}
                 </div>
                 {searchResults.length > 0 && !selectedPlace && (
-                  <div className="rounded-lg border bg-popover shadow-md">
+                  <div className="max-h-48 overflow-y-auto rounded-lg border bg-popover shadow-md">
                     {searchResults.map((place, i) => (
                       <button
                         key={i}
                         type="button"
                         onClick={() => handleSelectPlace(place)}
-                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent"
+                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent/50"
                       >
                         <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <div>
@@ -188,12 +184,12 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
               </div>
 
               <div className="space-y-2">
-                <Label>Category</Label>
-                <Select value={category} onValueChange={(v) => setCategory(v as SpotCategory)}>
-                  <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                <Label>Map Layer</Label>
+                <Select value={category} onValueChange={(v) => setCategory(v as MapLayer)}>
+                  <SelectTrigger><SelectValue placeholder="Select a layer" /></SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.icon} {c.label}</SelectItem>
+                    {LAYERS.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>{l.icon} {l.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -204,11 +200,11 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                 <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} />
               </div>
 
-              <Button type="submit" className="w-full bg-gradient-hero" disabled={isSubmitting}>
+              <Button type="submit" className="w-full bg-gradient-hero shadow-glow" disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Submit Recommendation'}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                ℹ️ Spots become visible after 5 unique student recommendations.
+                👻 New spots start transparent. They become official after 4 endorsements or a ≥3.5 rating.
               </p>
             </form>
           )}

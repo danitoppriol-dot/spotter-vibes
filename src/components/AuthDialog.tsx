@@ -12,7 +12,53 @@ interface AuthDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const BLOCKED_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'aol.com', 'icloud.com', 'me.com', 'mail.com', 'protonmail.com', 'zoho.com'];
+// Allowed university domain patterns
+const WHITELISTED_DOMAINS = [
+  // Sweden
+  'kth.se', 'su.se', 'uu.se', 'lu.se', 'gu.se', 'chalmers.se', 'liu.se', 'ltu.se', 'hhs.se', 'ki.se', 'umu.se', 'mdh.se', 'bth.se', 'hb.se', 'hig.se', 'hkr.se', 'mau.se',
+  // Italy
+  'polimi.it', 'unimi.it', 'unibo.it', 'uniroma1.it', 'unipd.it', 'unifi.it', 'unina.it', 'polito.it', 'unitn.it', 'units.it', 'unige.it', 'unipi.it', 'unict.it', 'uniba.it', 'unicatt.it', 'luiss.it', 'unibocconi.it', 'uniroma2.it', 'uniroma3.it', 'unisa.it', 'univr.it',
+  // Denmark
+  'ku.dk', 'dtu.dk', 'au.dk', 'sdu.dk', 'cbs.dk', 'itu.dk',
+  // Norway
+  'uio.no', 'ntnu.no', 'uib.no', 'nmbu.no', 'nhh.no',
+  // Finland
+  'aalto.fi', 'helsinki.fi', 'tuni.fi', 'oulu.fi', 'jyu.fi',
+  // Netherlands
+  'tudelft.nl', 'uva.nl', 'vu.nl', 'uu.nl', 'rug.nl', 'tue.nl', 'utwente.nl', 'leidenuniv.nl', 'eur.nl',
+  // Germany
+  'tum.de', 'lmu.de',
+  // France
+  'hec.fr', 'sciencespo.fr', 'ens.fr',
+  // Spain
+  'ub.edu', 'uam.es', 'uc3m.es',
+  // UK
+  'ox.ac.uk', 'cam.ac.uk', 'imperial.ac.uk', 'ucl.ac.uk', 'lse.ac.uk', 'kcl.ac.uk', 'ed.ac.uk',
+  // Switzerland
+  'ethz.ch', 'epfl.ch', 'uzh.ch', 'unibe.ch',
+];
+
+const ACADEMIC_PATTERNS = [
+  /\.edu$/,
+  /\.ac\.uk$/, /\.ac\.at$/, /\.ac\.be$/, /\.ac\.il$/, /\.ac\.jp$/, /\.ac\.nz$/,
+  /\.edu\.au$/, /\.edu\.cn$/, /\.edu\.sg$/, /\.edu\.hk$/, /\.edu\.tw$/,
+  /\.uni-.*\.de$/, /\.tu-.*\.de$/,
+  /\.univ-.*\.fr$/,
+  /\.studenti\..+\.it$/,
+];
+
+function isAllowedDomain(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain) return false;
+
+  // Check whitelisted domains (exact or subdomain match)
+  if (WHITELISTED_DOMAINS.some((d) => domain === d || domain.endsWith('.' + d))) return true;
+
+  // Check academic patterns
+  if (ACADEMIC_PATTERNS.some((p) => p.test(domain))) return true;
+
+  return false;
+}
 
 const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -22,23 +68,18 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const { toast } = useToast();
   const { signUp, signIn } = useAuth();
 
-  const validateEmail = (email: string) => {
-    const domain = email.split('@')[1]?.toLowerCase();
-    if (!domain || BLOCKED_DOMAINS.includes(domain)) {
-      toast({
-        title: 'Personal email not allowed',
-        description: 'Please use your university or work email (e.g. name@kth.se).',
-        variant: 'destructive',
-      });
-      return false;
-    }
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'signup' && !validateEmail(email)) return;
-    
+
+    if (mode === 'signup' && !isAllowedDomain(email)) {
+      toast({
+        title: 'University email required',
+        description: 'Only .edu and recognized university emails are accepted (e.g. name@kth.se, name@polimi.it).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     if (mode === 'signup') {
       const { error, needsVerification } = await signUp(email, password);
@@ -70,12 +111,12 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-lg">
-            {mode === 'signin' ? 'Sign in to Spotter' : 'Create your account'}
+            {mode === 'signin' ? 'Sign in to Spotter' : 'Join Spotter'}
           </DialogTitle>
           <DialogDescription>
             {mode === 'signin'
               ? 'Welcome back! Sign in with your email.'
-              : 'Use your university or work email to join.'}
+              : 'Use your university email (.edu or equivalent) to join.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -88,14 +129,14 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.name@***.**"
+                placeholder="your.name@university.edu"
                 className="pl-9"
                 required
               />
             </div>
             {mode === 'signup' && (
               <p className="text-xs text-muted-foreground">
-                University & work emails accepted (KTH, SU, SSE, etc.). No personal emails.
+                Only university emails accepted (.edu, kth.se, polimi.it, etc.)
               </p>
             )}
           </div>
@@ -115,7 +156,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
               />
             </div>
           </div>
-          <Button type="submit" className="w-full gap-2 bg-gradient-hero" disabled={isSubmitting}>
+          <Button type="submit" className="w-full gap-2 bg-gradient-hero shadow-glow" disabled={isSubmitting}>
             {isSubmitting ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Sign Up'}
             <ArrowRight className="h-4 w-4" />
           </Button>
