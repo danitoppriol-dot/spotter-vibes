@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+/// <reference types="google.maps" />
+import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { Spot, MapLayer } from '@/lib/mockData';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,7 @@ const LAYER_COLORS: Record<MapLayer, string> = {
   outdoor: '#22c55e',
 };
 
-const DARK_MAP_STYLES = [
+const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#555570' }] },
@@ -31,7 +32,7 @@ interface MapViewProps {
 }
 
 let cachedApiKey: string | null = null;
-let mapsLoaded = false;
+let loaderInstance: Loader | null = null;
 
 const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,7 +41,6 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize map
   useEffect(() => {
     let cancelled = false;
 
@@ -48,7 +48,6 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
       if (!containerRef.current) return;
 
       try {
-        // Fetch API key if not cached
         if (!cachedApiKey) {
           const { data, error: fnError } = await supabase.functions.invoke('get-maps-key');
           if (fnError || !data?.key) {
@@ -61,16 +60,14 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
 
         if (cancelled) return;
 
-        // Load Google Maps if not already loaded
-        if (!mapsLoaded) {
-          const loader = new Loader({
+        if (!loaderInstance) {
+          loaderInstance = new Loader({
             apiKey: cachedApiKey,
             version: 'weekly',
           });
-          await loader.importLibrary('maps');
-          await loader.importLibrary('marker');
-          mapsLoaded = true;
         }
+
+        await loaderInstance.load();
 
         if (cancelled || !containerRef.current) return;
 
@@ -97,18 +94,15 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
     return () => { cancelled = true; };
   }, []);
 
-  // Update center
   useEffect(() => {
     if (mapRef.current) {
       mapRef.current.panTo({ lat: center[0], lng: center[1] });
     }
   }, [center]);
 
-  // Update markers
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // Clear old markers
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
@@ -132,7 +126,6 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
         zIndex: spot.trending ? 10 : isOfficial ? 5 : 1,
       });
 
-      // Pulse effect for trending
       if (spot.trending && isOfficial) {
         const pulseMarker = new google.maps.Marker({
           position: { lat: spot.lat, lng: spot.lng },
@@ -156,7 +149,7 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
           <div style="font-family:'Space Grotesk',sans-serif;padding:4px 0;">
             <div style="font-size:14px;font-weight:600;color:#0a0a14;">${spot.name}</div>
             <div style="font-size:12px;color:#6b7280;margin-top:2px;">${spot.address}</div>
-            ${!isOfficial ? '<div style="font-size:11px;color:#a855f7;margin-top:4px;">👻 Unconfirmed — needs more endorsements</div>' : ''}
+            ${!isOfficial ? '<div style="font-size:11px;color:#a855f7;margin-top:4px;">👻 Unconfirmed</div>' : ''}
           </div>
         `,
       });
