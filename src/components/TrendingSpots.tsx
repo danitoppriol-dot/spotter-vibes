@@ -1,5 +1,5 @@
 import { Spot, CATEGORIES } from '@/lib/mockData';
-import { Star, ThumbsUp, TrendingUp, Ghost, CheckCircle2 } from 'lucide-react';
+import { Star, ThumbsUp, TrendingUp, Ghost, CheckCircle2, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 
