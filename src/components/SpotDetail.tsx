@@ -205,6 +205,11 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                     <TrendingUp className="h-3 w-3" /> Trending
                   </Badge>
                 )}
+                {countdown && countdown !== 'Expired' && (
+                  <Badge variant="outline" className="gap-1 border-orange-500 text-orange-600">
+                    <Timer className="h-3 w-3" /> {countdown}
+                  </Badge>
+                )}
               </div>
             </div>
           </SheetHeader>
