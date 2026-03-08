@@ -48,8 +48,37 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const [reviewText, setReviewText] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingToggle, setSavingToggle] = useState(false);
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
+
+  // Check if spot is saved
+  useEffect(() => {
+    if (!user || !spot) return;
+    supabase
+      .from('saved_places')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('place_id', spot.id)
+      .then(({ data }: any) => setIsSaved((data || []).length > 0));
+  }, [user, spot?.id]);
+
+  const handleToggleSave = async () => {
+    if (!isLoggedIn || !user) { setAuthOpen(true); return; }
+    if (!spot) return;
+    setSavingToggle(true);
+    if (isSaved) {
+      await supabase.from('saved_places').delete().eq('user_id', user.id).eq('place_id', spot.id);
+      setIsSaved(false);
+      toast({ title: 'Rimosso dai preferiti' });
+    } else {
+      await (supabase.from('saved_places').insert({ user_id: user.id, place_id: spot.id } as any) as any);
+      setIsSaved(true);
+      toast({ title: 'Salvato nei preferiti ❤️' });
+    }
+    setSavingToggle(false);
+  };
 
   if (!spot) return null;
 
