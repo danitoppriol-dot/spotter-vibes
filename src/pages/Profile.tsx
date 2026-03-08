@@ -272,6 +272,36 @@ const Profile = () => {
                 </>
               )}
             </div>
+            {/* Map title */}
+            {(mapTitle || isOwnProfile) && (
+              <div className="flex items-center gap-2">
+                {editingTitle ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newMapTitle}
+                      onChange={(e) => setNewMapTitle(e.target.value)}
+                      placeholder="e.g. Best spots in Stockholm"
+                      className="h-7 w-64 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveMapTitle()}
+                    />
+                    <Button size="sm" variant="ghost" onClick={handleSaveMapTitle}>Save</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingTitle(false)}>Cancel</Button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-muted-foreground italic">
+                      {mapTitle || (isOwnProfile ? 'Add a title to your map…' : '')}
+                    </p>
+                    {isOwnProfile && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setNewMapTitle(mapTitle); setEditingTitle(true); }}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               {profile?.university && <span>📧 {profile.university}</span>}
               <span>·</span>
