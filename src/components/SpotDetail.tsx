@@ -163,6 +163,11 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
           </SheetHeader>
 
           <div className="space-y-5">
+            {/* Photo */}
+            {spot.photoUrl && (
+              <img src={spot.photoUrl} alt={spot.name} className="h-44 w-full rounded-lg object-cover" />
+            )}
+
             <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-primary hover:underline">
               <MapPin className="h-4 w-4" /> {spot.address} <ExternalLink className="h-3 w-3" />
@@ -190,6 +195,17 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                 </div>
               </div>
             </div>
+
+            {/* Questionnaire info */}
+            {spot.questionnaire && Object.keys(spot.questionnaire).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(spot.questionnaire).map(([key, value]) => (
+                  <Badge key={key} variant="outline" className="text-xs capitalize">
+                    {key.replace(/_/g, ' ')}: {value}
+                  </Badge>
+                ))}
+              </div>
+            )}
 
             {!spot.isOfficial && (
               <div className="rounded-lg border border-muted bg-muted/30 p-3">

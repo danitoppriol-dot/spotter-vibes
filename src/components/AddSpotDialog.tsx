@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { LAYERS, MapLayer } from '@/lib/mockData';
-import { Mail, ArrowRight, Search, MapPin, Loader2 } from 'lucide-react';
+import { Mail, ArrowRight, Search, MapPin, Loader2, Camera, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthDialog from '@/components/AuthDialog';
@@ -26,6 +27,23 @@ interface AddSpotDialogProps {
   onSpotAdded?: () => void;
 }
 
+// Questionnaire fields per layer
+const QUESTIONNAIRES: Record<MapLayer, { id: string; label: string; options: string[] }[]> = {
+  study: [
+    { id: 'wifi_speed', label: 'Wi-Fi Speed', options: ['Fast', 'Moderate', 'Slow', 'None'] },
+    { id: 'outlets', label: 'Power Outlets', options: ['Many', 'Some', 'Few', 'None'] },
+    { id: 'noise_level', label: 'Noise Level', options: ['Silent', 'Quiet', 'Moderate', 'Loud'] },
+  ],
+  nightlife: [
+    { id: 'crowd_size', label: 'Crowd Size', options: ['Packed', 'Busy', 'Moderate', 'Chill'] },
+    { id: 'music_type', label: 'Music Type', options: ['Electronic', 'Hip-Hop', 'Live Band', 'Mixed', 'None'] },
+    { id: 'queue_length', label: 'Queue Length', options: ['Long', 'Short', 'None'] },
+  ],
+  outdoor: [
+    { id: 'activity', label: 'Main Activity', options: ['Tennis', 'Running', 'Swimming', 'Viewpoint', 'Park', 'Cycling', 'Other'] },
+  ],
+};
+
 const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) => {
   const [placeQuery, setPlaceQuery] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
@@ -33,11 +51,17 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
   const [isSearching, setIsSearching] = useState(false);
   const [category, setCategory] = useState<MapLayer | ''>('');
   const [description, setDescription] = useState('');
+  const [mapType, setMapType] = useState<'personal' | 'general' | 'both'>('both');
+  const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({});
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState<'search' | 'details'>('search');
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Debounced search
   useEffect(() => {
@@ -69,6 +93,17 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     };
   }, [placeQuery, selectedPlace]);
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Photo too large', description: 'Max 5MB allowed.', variant: 'destructive' });
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoggedIn || !user) { setAuthOpen(true); return; }
@@ -80,8 +115,34 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       toast({ title: 'Select a layer', description: 'Please choose a map layer for this spot.', variant: 'destructive' });
       return;
     }
+    if (!photoFile) {
+      toast({ title: 'Photo required', description: 'Please upload at least one photo of the spot.', variant: 'destructive' });
+      return;
+    }
+
+    // Check questionnaire completeness
+    const requiredFields = QUESTIONNAIRES[category as MapLayer] || [];
+    const missing = requiredFields.filter(f => !questionnaire[f.id]);
+    if (missing.length > 0) {
+      toast({ title: 'Complete the questionnaire', description: `Please answer: ${missing.map(f => f.label).join(', ')}`, variant: 'destructive' });
+      return;
+    }
 
     setIsSubmitting(true);
+
+    // Upload photo
+    let photoUrl: string | null = null;
+    const ext = photoFile.name.split('.').pop() || 'jpg';
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('place-photos').upload(path, photoFile);
+    if (uploadError) {
+      toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
+      setIsSubmitting(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from('place-photos').getPublicUrl(path);
+    photoUrl = urlData.publicUrl;
+
     const { error } = await supabase.from('places').insert({
       name: selectedPlace.name,
       category,
@@ -91,6 +152,10 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       description,
       created_by: user.id,
       google_maps_url: selectedPlace.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(selectedPlace.name + ' ' + selectedPlace.address)}`,
+      photo_url: photoUrl,
+      map_type: mapType,
+      questionnaire: questionnaire,
+      filters: questionnaire,
     } as any);
 
     setIsSubmitting(false);
@@ -104,12 +169,21 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       title: 'Spot submitted! 🎉',
       description: `"${selectedPlace.name}" is now on the map. It becomes official after 4 endorsements.`,
     });
+    resetForm();
     onOpenChange(false);
     onSpotAdded?.();
+  };
+
+  const resetForm = () => {
     setPlaceQuery('');
     setSelectedPlace(null);
     setCategory('');
     setDescription('');
+    setMapType('both');
+    setQuestionnaire({});
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setStep('search');
   };
 
   const handleSelectPlace = (place: PlaceResult) => {
@@ -118,15 +192,17 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     setSearchResults([]);
   };
 
+  const canProceed = selectedPlace && category;
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-lg">Recommend a Spot</DialogTitle>
             <DialogDescription>
               {isLoggedIn
-                ? 'Search for a place and add it to the map. Spots start transparent and become official after 4 endorsements.'
+                ? step === 'search' ? 'Search for a place and choose a layer.' : 'Upload a photo and complete the questionnaire.'
                 : 'Sign in with your university email to recommend spots.'}
             </DialogDescription>
           </DialogHeader>
@@ -140,8 +216,9 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                 <Mail className="h-4 w-4" /> Sign In to Continue <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+          ) : step === 'search' ? (
+            <div className="space-y-4">
+              {/* Place search */}
               <div className="space-y-2">
                 <Label>Search Place</Label>
                 <div className="relative">
@@ -163,7 +240,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                         key={i}
                         type="button"
                         onClick={() => handleSelectPlace(place)}
-                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent/50"
+                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted"
                       >
                         <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <div>
@@ -183,6 +260,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                 )}
               </div>
 
+              {/* Layer selection */}
               <div className="space-y-2">
                 <Label>Map Layer</Label>
                 <Select value={category} onValueChange={(v) => setCategory(v as MapLayer)}>
@@ -195,14 +273,103 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
                 </Select>
               </div>
 
+              {/* Map type */}
+              <div className="space-y-2">
+                <Label>Add to</Label>
+                <RadioGroup value={mapType} onValueChange={(v) => setMapType(v as any)} className="flex gap-3">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="personal" id="map-personal" />
+                    <Label htmlFor="map-personal" className="text-sm cursor-pointer">My Map</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="general" id="map-general" />
+                    <Label htmlFor="map-general" className="text-sm cursor-pointer">General Map</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="both" id="map-both" />
+                    <Label htmlFor="map-both" className="text-sm cursor-pointer">Both</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <Button
+                className="w-full bg-gradient-hero"
+                disabled={!canProceed}
+                onClick={() => setStep('details')}
+              >
+                Next: Photo & Questionnaire <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Photo upload */}
+              <div className="space-y-2">
+                <Label>Photo *</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+                {photoPreview ? (
+                  <div className="relative">
+                    <img src={photoPreview} alt="Preview" className="h-40 w-full rounded-lg object-cover" />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="absolute bottom-2 right-2 gap-1"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Camera className="h-3 w-3" /> Change
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition-colors hover:bg-muted/50"
+                  >
+                    <Upload className="h-6 w-6" />
+                    <span className="text-sm">Upload a photo of the spot</span>
+                    <span className="text-xs">Max 5MB</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Questionnaire */}
+              {category && QUESTIONNAIRES[category as MapLayer]?.map((field) => (
+                <div key={field.id} className="space-y-2">
+                  <Label>{field.label} *</Label>
+                  <Select
+                    value={questionnaire[field.id] || ''}
+                    onValueChange={(v) => setQuestionnaire(prev => ({ ...prev, [field.id]: v }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder={`Select ${field.label.toLowerCase()}`} /></SelectTrigger>
+                    <SelectContent>
+                      {field.options.map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+
+              {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="spot-desc">Why is this spot great?</Label>
                 <Textarea id="spot-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell students what makes this place special..." rows={3} />
               </div>
 
-              <Button type="submit" className="w-full bg-gradient-hero shadow-glow" disabled={isSubmitting}>
-                {isSubmitting ? 'Submitting...' : 'Submit Recommendation'}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setStep('search')} className="flex-1">
+                  Back
+                </Button>
+                <Button type="submit" className="flex-1 bg-gradient-hero shadow-glow" disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit Spot'}
+                </Button>
+              </div>
               <p className="text-center text-xs text-muted-foreground">
                 👻 New spots start transparent. They become official after 4 endorsements or a ≥3.5 rating.
               </p>

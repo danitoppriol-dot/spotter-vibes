@@ -70,6 +70,9 @@ export interface Spot {
   trending: boolean;
   isOfficial: boolean;
   imageUrl?: string;
+  photoUrl?: string;
+  mapType?: string;
+  questionnaire?: Record<string, string>;
   openingHours?: string;
   googleMapsUrl?: string;
   filters?: Record<string, string>;

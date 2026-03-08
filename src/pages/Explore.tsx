@@ -81,6 +81,9 @@ const Explore = () => {
         isOfficial: isSpotOfficial(p.recommendation_count || 0, avgRating),
         openingHours: p.opening_hours,
         googleMapsUrl: p.google_maps_url,
+        photoUrl: p.photo_url,
+        mapType: p.map_type,
+        questionnaire: (p.questionnaire as Record<string, string>) || {},
         filters: p.filters || {},
         reviews: placeReviews.map((r: any) => ({
           id: r.id,
