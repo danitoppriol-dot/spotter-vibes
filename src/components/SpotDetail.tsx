@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Spot, CATEGORIES } from '@/lib/mockData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send } from 'lucide-react';
+import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -48,8 +48,37 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const [reviewText, setReviewText] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingToggle, setSavingToggle] = useState(false);
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
+
+  // Check if spot is saved
+  useEffect(() => {
+    if (!user || !spot) return;
+    supabase
+      .from('saved_places')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('place_id', spot.id)
+      .then(({ data }: any) => setIsSaved((data || []).length > 0));
+  }, [user, spot?.id]);
+
+  const handleToggleSave = async () => {
+    if (!isLoggedIn || !user) { setAuthOpen(true); return; }
+    if (!spot) return;
+    setSavingToggle(true);
+    if (isSaved) {
+      await supabase.from('saved_places').delete().eq('user_id', user.id).eq('place_id', spot.id);
+      setIsSaved(false);
+      toast({ title: 'Rimosso dai preferiti' });
+    } else {
+      await (supabase.from('saved_places').insert({ user_id: user.id, place_id: spot.id } as any) as any);
+      setIsSaved(true);
+      toast({ title: 'Salvato nei preferiti ❤️' });
+    }
+    setSavingToggle(false);
+  };
 
   if (!spot) return null;
 
@@ -163,10 +192,19 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
               <Button className="flex-1 gap-2" onClick={handleRecommend}>
                 <ThumbsUp className="h-4 w-4" /> Recommend
               </Button>
-              <Button variant="outline" className="flex-1" onClick={handleOpenReview}>
-                Write Review
+              <Button
+                variant={isSaved ? 'secondary' : 'outline'}
+                className="gap-2"
+                onClick={handleToggleSave}
+                disabled={savingToggle}
+              >
+                <Heart className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+                {isSaved ? 'Salvato' : 'Salva'}
               </Button>
             </div>
+            <Button variant="outline" className="w-full" onClick={handleOpenReview}>
+              Write Review
+            </Button>
 
             <Button variant="outline" className="w-full gap-2" asChild>
               <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
