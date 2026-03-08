@@ -187,11 +187,12 @@ const SharedMaps = () => {
                 <div className="mb-3 flex items-center justify-between">
                   <div>
                     <h3 className="font-display font-semibold">
-                      {profile.is_name_public ? profile.display_name : 'Anonymous'}
+                      {profile.map_title || (profile.is_name_public ? `${profile.display_name}'s Map` : 'Anonymous Map')}
                     </h3>
-                    {profile.university && (
-                      <p className="text-xs text-muted-foreground">🎓 {profile.university}</p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {profile.is_name_public ? profile.display_name : 'Anonymous'}
+                      {profile.university && ` · 🎓 ${profile.university}`}
+                    </p>
                   </div>
                   <Badge variant="secondary" className="gap-1">
                     <MapPin className="h-3 w-3" /> {profile.saved_count} spots
