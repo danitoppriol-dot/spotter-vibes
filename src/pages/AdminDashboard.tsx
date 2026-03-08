@@ -65,7 +65,7 @@ const AdminDashboard = () => {
     });
 
     const userRows: UserRow[] = (authUsers || []).map((u: any) => {
-      const profile = profileMap.get(u.user_id);
+      const profile = profileMap.get(u.user_id) as any;
       return {
         user_id: u.user_id,
         email: u.email,
