@@ -10,18 +10,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Map, List, Star, MapPin, Lock, Globe, Eye, EyeOff, Heart } from 'lucide-react';
+import { Map, List, Star, MapPin, Lock, Globe, Eye, EyeOff, Heart, Share2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
 const Profile = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { userId, shareToken } = useParams<{ userId?: string; shareToken?: string }>();
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const isOwnProfile = !userId || userId === user?.id;
-  const profileUserId = userId || user?.id;
+  const isSharedView = !!shareToken;
+  const isOwnProfile = !isSharedView && (!userId || userId === user?.id);
+  const profileUserId = userId || (isSharedView ? undefined : user?.id);
 
   const [profile, setProfile] = useState<any>(null);
   const [savedSpots, setSavedSpots] = useState<Spot[]>([]);
@@ -31,21 +32,33 @@ const Profile = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([59.3293, 18.0686]);
   const [isMapPublic, setIsMapPublic] = useState(false);
   const [isNamePublic, setIsNamePublic] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!profileUserId) return;
+    if (!profileUserId && !shareToken) return;
     fetchProfileData();
-  }, [profileUserId]);
+  }, [profileUserId, shareToken]);
 
   const fetchProfileData = async () => {
-    if (!profileUserId) return;
     setLoading(true);
 
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', profileUserId)
-      .single() as any;
+    let profileData: any = null;
+
+    if (shareToken) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('share_token', shareToken)
+        .single();
+      profileData = data;
+    } else if (profileUserId) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', profileUserId)
+        .single();
+      profileData = data;
+    }
 
     if (!profileData) { setLoading(false); return; }
 
@@ -53,15 +66,19 @@ const Profile = () => {
     setIsMapPublic(profileData.is_map_public || false);
     setIsNamePublic(profileData.is_name_public || false);
 
-    if (!isOwnProfile && !profileData.is_map_public) {
+    // For shared links, always show the map. For non-owner visits, check public flag.
+    const canViewMap = isOwnProfile || isSharedView || profileData.is_map_public;
+    if (!canViewMap) {
       setLoading(false);
       return;
     }
 
+    const targetUserId = profileData.user_id;
+
     const { data: saved } = await supabase
       .from('saved_places')
       .select('place_id')
-      .eq('user_id', profileUserId) as any;
+      .eq('user_id', targetUserId) as any;
 
     if (!saved || saved.length === 0) {
       setSavedSpots([]);
@@ -114,16 +131,25 @@ const Profile = () => {
     toast({ title: value ? 'Name visible' : 'Name hidden' });
   };
 
+  const handleShareLink = async () => {
+    if (!profile?.share_token) return;
+    const url = `${window.location.origin}/shared/${profile.share_token}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast({ title: 'Link copied! 🔗', description: 'Share it with anyone to show your map.' });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleSpotClick = (spot: Spot) => {
     setSelectedSpot(spot);
     setMapCenter([spot.lat, spot.lng]);
   };
 
   const displayName = profile
-    ? (isOwnProfile || profile.is_name_public ? profile.display_name : 'Anonymous')
+    ? (isOwnProfile || isSharedView || profile.is_name_public ? profile.display_name : 'Anonymous')
     : '';
 
-  if (!isLoggedIn && isOwnProfile) {
+  if (!isLoggedIn && isOwnProfile && !isSharedView) {
     return (
       <div className="flex h-screen flex-col bg-background">
         <Navbar />
@@ -134,7 +160,7 @@ const Profile = () => {
     );
   }
 
-  const isPrivateAndNotOwner = !isOwnProfile && profile && !profile.is_map_public;
+  const isPrivateAndNotOwner = !isOwnProfile && !isSharedView && profile && !profile.is_map_public;
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -148,7 +174,12 @@ const Profile = () => {
               <span>·</span>
               <Heart className="h-3.5 w-3.5" /> {savedSpots.length} saved spots
             </p>
-            {!isOwnProfile && (
+            {isSharedView && (
+              <Badge variant="outline" className="gap-1">
+                <Share2 className="h-3 w-3" /> Shared map
+              </Badge>
+            )}
+            {!isOwnProfile && !isSharedView && (
               <Badge variant="outline" className="gap-1">
                 {profile?.is_map_public ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
                 {profile?.is_map_public ? 'Public map' : 'Private map'}
@@ -172,6 +203,15 @@ const Profile = () => {
                   {isNamePublic ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                   Name {isNamePublic ? 'visible' : 'hidden'}
                 </Label>
+              </div>
+              <div className="border-t pt-3">
+                <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={handleShareLink}>
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? 'Copied!' : 'Copy share link'}
+                </Button>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Anyone with this link can see your map, even if it's private.
+                </p>
               </div>
             </div>
           )}
