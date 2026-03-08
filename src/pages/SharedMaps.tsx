@@ -17,6 +17,7 @@ interface PublicProfile {
   university: string | null;
   is_name_public: boolean;
   share_token: string | null;
+  map_title: string | null;
   saved_count: number;
   avg_rating: number;
   rating_count: number;
