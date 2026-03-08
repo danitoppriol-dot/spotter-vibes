@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import SharedMaps from "./pages/SharedMaps";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/shared/:shareToken" element={<Profile />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

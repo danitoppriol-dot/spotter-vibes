@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MapPin, Compass, LogIn, LogOut, User, Users } from 'lucide-react';
+import { MapPin, Compass, LogIn, LogOut, User, Users, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
@@ -7,7 +7,7 @@ import AuthDialog from '@/components/AuthDialog';
 
 const Navbar = () => {
   const location = useLocation();
-  const { isLoggedIn, email, logout } = useAuth();
+  const { isLoggedIn, email, logout, isAdmin } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
@@ -39,9 +39,16 @@ const Navbar = () => {
             {isLoggedIn ? (
               <div className="flex items-center gap-2">
                 <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>
+                {isAdmin && location.pathname !== '/admin' && (
+                  <Button variant="ghost" size="sm" className="gap-1.5" asChild>
+                    <Link to="/admin">
+                      <Shield className="h-4 w-4" /> Admin
+                    </Link>
+                  </Button>
+                )}
                 <Button variant="ghost" size="sm" className="gap-1.5" asChild>
                   <Link to="/profile">
-                    <User className="h-4 w-4" /> Profilo
+                    <User className="h-4 w-4" /> Profile
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={logout}>

@@ -109,6 +109,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          is_blocked: boolean
           is_map_public: boolean
           is_name_public: boolean
           share_token: string | null
@@ -119,6 +120,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_blocked?: boolean
           is_map_public?: boolean
           is_name_public?: boolean
           share_token?: string | null
@@ -129,6 +131,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_blocked?: boolean
           is_map_public?: boolean
           is_name_public?: boolean
           share_token?: string | null
@@ -256,12 +259,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_user_by_email: {
+        Args: { _email: string }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      list_all_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          user_id: string
+        }[]
       }
     }
     Enums: {
