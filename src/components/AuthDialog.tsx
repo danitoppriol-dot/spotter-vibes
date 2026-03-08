@@ -127,12 +127,14 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-lg">
-            {mode === 'signin' ? 'Sign in to Spotter' : 'Join Spotter'}
+            {mode === 'signin' ? 'Sign in to Spotter' : mode === 'signup' ? 'Join Spotter' : 'Reset Password'}
           </DialogTitle>
           <DialogDescription>
             {mode === 'signin'
               ? 'Welcome back! Sign in with your email.'
-              : 'Use your university email (.edu or equivalent) to join.'}
+              : mode === 'signup'
+              ? 'Use your university email (.edu or equivalent) to join.'
+              : 'Enter your email and we\'ll send you a reset link.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,26 +158,35 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
               </p>
             )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="auth-password">Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="auth-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'signup' ? 'Create a password (6+ chars)' : 'Your password'}
-                className="pl-9"
-                minLength={6}
-                required
-              />
+          {mode !== 'forgot' && (
+            <div className="space-y-2">
+              <Label htmlFor="auth-password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="auth-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === 'signup' ? 'Create a password (6+ chars)' : 'Your password'}
+                  className="pl-9"
+                  minLength={6}
+                  required
+                />
+              </div>
             </div>
-          </div>
+          )}
           <Button type="submit" className="w-full gap-2 bg-gradient-hero shadow-glow" disabled={isSubmitting}>
-            {isSubmitting ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Sign Up'}
+            {isSubmitting ? 'Loading...' : mode === 'signin' ? 'Sign In' : mode === 'signup' ? 'Sign Up' : 'Send Reset Link'}
             <ArrowRight className="h-4 w-4" />
           </Button>
+          {mode === 'signin' && (
+            <p className="text-center text-xs text-muted-foreground">
+              <button type="button" className="text-primary underline" onClick={() => setMode('forgot')}>
+                Forgot password?
+              </button>
+            </p>
+          )}
           <p className="text-center text-sm text-muted-foreground">
             {mode === 'signin' ? (
               <>Don't have an account?{' '}
@@ -183,8 +194,14 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
                   Sign up
                 </button>
               </>
-            ) : (
+            ) : mode === 'signup' ? (
               <>Already have an account?{' '}
+                <button type="button" className="text-primary underline" onClick={() => setMode('signin')}>
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>Back to{' '}
                 <button type="button" className="text-primary underline" onClick={() => setMode('signin')}>
                   Sign in
                 </button>
