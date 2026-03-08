@@ -306,8 +306,18 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                     <TrendingUp className="h-3 w-3" /> Trending
                   </Badge>
                 )}
+                {spot.hasOutlets && (
+                  <Badge variant="outline" className="gap-1 border-secondary text-secondary">
+                    <Zap className="h-3 w-3" /> Outlets
+                  </Badge>
+                )}
+                {spot.avgSilenceLevel != null && spot.avgSilenceLevel > 0 && (
+                  <Badge variant="outline" className="gap-1 border-primary text-primary">
+                    <Volume2 className="h-3 w-3" /> Silence {spot.avgSilenceLevel.toFixed(1)}/5
+                  </Badge>
+                )}
                 {countdown && countdown !== 'Expired' && (
-                  <Badge variant="outline" className="gap-1 border-orange-500 text-orange-600">
+                  <Badge variant="outline" className="gap-1 border-accent text-accent">
                     <Timer className="h-3 w-3" /> {countdown}
                   </Badge>
                 )}
