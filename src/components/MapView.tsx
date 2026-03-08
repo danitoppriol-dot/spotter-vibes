@@ -172,7 +172,7 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
 
       markersRef.current.push(marker);
     });
-  }, [spots, onSpotClick]);
+  }, [spots, onSpotClick, loading]);
 
   if (error) {
     return (
