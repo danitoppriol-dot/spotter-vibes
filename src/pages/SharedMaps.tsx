@@ -54,15 +54,16 @@ const SharedMaps = () => {
 
     const userIds = publicProfiles.map((p: any) => p.user_id);
 
-    // Get saved place counts
-    const { data: savedCounts } = await supabase
-      .from('saved_places')
-      .select('user_id')
-      .in('user_id', userIds) as any;
+    // Get spot counts (places created by each user)
+    const { data: createdCounts } = await supabase
+      .from('places')
+      .select('created_by')
+      .in('created_by', userIds)
+      .eq('is_visible', true) as any;
 
     const countMap = new Map<string, number>();
-    (savedCounts || []).forEach((s: any) => {
-      countMap.set(s.user_id, (countMap.get(s.user_id) || 0) + 1);
+    (createdCounts || []).forEach((s: any) => {
+      countMap.set(s.created_by, (countMap.get(s.created_by) || 0) + 1);
     });
 
     // Get map ratings
