@@ -136,10 +136,13 @@ const SharedMaps = () => {
 
   const filtered = profiles.filter(p => {
     if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
     const name = p.is_name_public ? p.display_name || '' : '';
     const uni = p.university || '';
-    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           uni.toLowerCase().includes(searchQuery.toLowerCase());
+    const title = p.map_title || '';
+    return name.toLowerCase().includes(q) ||
+           uni.toLowerCase().includes(q) ||
+           title.toLowerCase().includes(q);
   });
 
   return (
