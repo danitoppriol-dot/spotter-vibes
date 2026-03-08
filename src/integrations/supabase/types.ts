@@ -112,6 +112,7 @@ export type Database = {
           is_blocked: boolean
           is_map_public: boolean
           is_name_public: boolean
+          map_title: string | null
           share_token: string | null
           university: string | null
           user_id: string
@@ -123,6 +124,7 @@ export type Database = {
           is_blocked?: boolean
           is_map_public?: boolean
           is_name_public?: boolean
+          map_title?: string | null
           share_token?: string | null
           university?: string | null
           user_id: string
@@ -134,6 +136,7 @@ export type Database = {
           is_blocked?: boolean
           is_map_public?: boolean
           is_name_public?: boolean
+          map_title?: string | null
           share_token?: string | null
           university?: string | null
           user_id?: string

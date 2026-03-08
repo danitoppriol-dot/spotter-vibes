@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN map_title text DEFAULT NULL;
