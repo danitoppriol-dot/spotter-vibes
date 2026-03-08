@@ -84,6 +84,7 @@ export type Database = {
           id: string
           is_map_public: boolean
           is_name_public: boolean
+          share_token: string | null
           university: string | null
           user_id: string
         }
@@ -93,6 +94,7 @@ export type Database = {
           id?: string
           is_map_public?: boolean
           is_name_public?: boolean
+          share_token?: string | null
           university?: string | null
           user_id: string
         }
@@ -102,6 +104,7 @@ export type Database = {
           id?: string
           is_map_public?: boolean
           is_name_public?: boolean
+          share_token?: string | null
           university?: string | null
           user_id?: string
         }
