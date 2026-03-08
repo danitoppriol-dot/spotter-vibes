@@ -146,6 +146,10 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     const { data: urlData } = supabase.storage.from('place-photos').getPublicUrl(path);
     photoUrl = urlData.publicUrl;
 
+    const expiresAt = isTemporary
+      ? new Date(Date.now() + parseInt(expiryHours) * 60 * 60 * 1000).toISOString()
+      : null;
+
     const { error } = await supabase.from('places').insert({
       name: selectedPlace.name,
       category,
@@ -159,6 +163,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       map_type: mapType,
       questionnaire: questionnaire,
       filters: questionnaire,
+      expires_at: expiresAt,
     } as any);
 
     setIsSubmitting(false);
