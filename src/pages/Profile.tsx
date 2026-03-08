@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Map, List, Star, MapPin, Lock, Globe, Eye, EyeOff, Heart, Share2, Copy, Check } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Map, List, Star, MapPin, Lock, Globe, Eye, EyeOff, Heart, Share2, Copy, Check, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
