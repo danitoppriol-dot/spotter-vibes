@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Spot, CATEGORIES, LAYERS, MapLayer } from '@/lib/mockData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2, Timer, Flag, Pencil, Trash2 } from 'lucide-react';
+import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart, Ghost, CheckCircle2, Timer, Flag, Pencil, Trash2, Zap, Volume2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -85,6 +86,8 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
+  const [reviewHasOutlets, setReviewHasOutlets] = useState(false);
+  const [reviewSilenceLevel, setReviewSilenceLevel] = useState(0);
   const [reportReason, setReportReason] = useState('');
   const [reportDetails, setReportDetails] = useState('');
   const [editName, setEditName] = useState('');
@@ -137,6 +140,7 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   if (!spot) return null;
 
   const category = CATEGORIES.find((c) => c.id === spot.category);
+  const isStudySpot = spot.category === 'study';
 
   const handleRecommend = async () => {
     if (!isLoggedIn || !user) { setAuthOpen(true); return; }
@@ -181,10 +185,26 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
       toast({ title: 'Add a rating', description: 'Please select a star rating.', variant: 'destructive' });
       return;
     }
+    if (!reviewText.trim()) {
+      toast({ title: 'Comment required', description: 'Please write a comment for your review.', variant: 'destructive' });
+      return;
+    }
+    if (isStudySpot && reviewSilenceLevel === 0) {
+      toast({ title: 'Silence level required', description: 'Please rate the silence level.', variant: 'destructive' });
+      return;
+    }
     setIsSubmitting(true);
-    const { error } = await supabase.from('reviews').insert({
-      user_id: user.id, place_id: spot.id, rating: reviewRating, text: reviewText || null,
-    } as any);
+    const insertData: any = {
+      user_id: user.id,
+      place_id: spot.id,
+      rating: reviewRating,
+      text: reviewText.trim(),
+    };
+    if (isStudySpot) {
+      insertData.has_outlets = reviewHasOutlets;
+      insertData.silence_level = reviewSilenceLevel;
+    }
+    const { error } = await supabase.from('reviews').insert(insertData as any);
     setIsSubmitting(false);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -194,6 +214,8 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
     setShowReviewForm(false);
     setReviewRating(0);
     setReviewText('');
+    setReviewHasOutlets(false);
+    setReviewSilenceLevel(0);
     onUpdate?.();
   };
 
@@ -284,8 +306,18 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                     <TrendingUp className="h-3 w-3" /> Trending
                   </Badge>
                 )}
+                {spot.hasOutlets && (
+                  <Badge variant="outline" className="gap-1 border-secondary text-secondary">
+                    <Zap className="h-3 w-3" /> Outlets
+                  </Badge>
+                )}
+                {spot.avgSilenceLevel != null && spot.avgSilenceLevel > 0 && (
+                  <Badge variant="outline" className="gap-1 border-primary text-primary">
+                    <Volume2 className="h-3 w-3" /> Silence {spot.avgSilenceLevel.toFixed(1)}/5
+                  </Badge>
+                )}
                 {countdown && countdown !== 'Expired' && (
-                  <Badge variant="outline" className="gap-1 border-orange-500 text-orange-600">
+                  <Badge variant="outline" className="gap-1 border-accent text-accent">
                     <Timer className="h-3 w-3" /> {countdown}
                   </Badge>
                 )}
@@ -452,13 +484,34 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                 className="space-y-3 rounded-lg border bg-muted/30 p-4">
                 <h4 className="font-display text-sm font-semibold">Your Review</h4>
                 <div className="space-y-1">
-                  <Label className="text-xs">Rating</Label>
+                  <Label className="text-xs">Rating *</Label>
                   <StarRating rating={reviewRating} interactive onRate={setReviewRating} />
                 </div>
+
+                {/* Study-specific fields */}
+                {isStudySpot && (
+                  <>
+                    <div className="flex items-center justify-between rounded-md border bg-background p-3">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-secondary" />
+                        <Label className="text-xs font-medium">Power Outlets Available? *</Label>
+                      </div>
+                      <Switch checked={reviewHasOutlets} onCheckedChange={setReviewHasOutlets} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1">
+                        <Volume2 className="h-3.5 w-3.5" /> Silence Level * <span className="text-muted-foreground">(1=noisy, 5=silent)</span>
+                      </Label>
+                      <StarRating rating={reviewSilenceLevel} interactive onRate={setReviewSilenceLevel} />
+                    </div>
+                  </>
+                )}
+
                 <div className="space-y-1">
-                  <Label className="text-xs">Comment (optional)</Label>
+                  <Label className="text-xs">Comment *</Label>
                   <Textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)}
-                    placeholder="What did you like about this place?" rows={3} />
+                    placeholder={isStudySpot ? "Describe WiFi quality, seating, atmosphere..." : "What did you like about this place?"}
+                    rows={3} />
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" className="gap-1.5 bg-gradient-hero" onClick={handleSubmitReview} disabled={isSubmitting}>
@@ -484,6 +537,21 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                       <StarRating rating={review.rating} />
                     </div>
                     {review.text && <p className="text-sm text-foreground/70">{review.text}</p>}
+                    {isStudySpot && (
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {review.hasOutlets != null && (
+                          <span className="flex items-center gap-1">
+                            <Zap className={`h-3 w-3 ${review.hasOutlets ? 'text-secondary' : 'text-muted'}`} />
+                            {review.hasOutlets ? 'Outlets ✓' : 'No outlets'}
+                          </span>
+                        )}
+                        {review.silenceLevel != null && (
+                          <span className="flex items-center gap-1">
+                            <Volume2 className="h-3 w-3" /> Silence: {review.silenceLevel}/5
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground">{review.date}</p>
                   </motion.div>
                 ))

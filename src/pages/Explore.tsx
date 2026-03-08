@@ -67,6 +67,16 @@ const Explore = () => {
         ? placeReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / placeReviews.length
         : 0;
 
+      // Compute hasOutlets: true if any review says has_outlets = true
+      const outletsReviews = placeReviews.filter((r: any) => r.has_outlets === true);
+      const hasOutlets = outletsReviews.length > 0;
+
+      // Compute avg silence level for study spots
+      const silenceReviews = placeReviews.filter((r: any) => r.silence_level != null);
+      const avgSilenceLevel = silenceReviews.length > 0
+        ? silenceReviews.reduce((sum: number, r: any) => sum + r.silence_level, 0) / silenceReviews.length
+        : undefined;
+
       return {
         id: p.id,
         name: p.name,
@@ -88,12 +98,16 @@ const Explore = () => {
         questionnaire: (p.questionnaire as Record<string, string>) || {},
         filters: p.filters || {},
         expiresAt: p.expires_at,
+        hasOutlets,
+        avgSilenceLevel,
         reviews: placeReviews.map((r: any) => ({
           id: r.id,
           userName: profileMap.get(r.user_id) || 'Student',
           rating: r.rating,
           text: r.text || '',
           date: r.created_at?.split('T')[0] || '',
+          hasOutlets: r.has_outlets,
+          silenceLevel: r.silence_level,
         })),
       };
     });
@@ -111,10 +125,16 @@ const Explore = () => {
   };
 
   const filteredSpots = useMemo(() => {
+    const q = searchQuery.toLowerCase();
     return dbSpots.filter((s) => {
       if (!isModerator && !s.isVisible) return false;
       if (!activeCategories.includes(s.category)) return false;
-      if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (q) {
+        const nameMatch = s.name.toLowerCase().includes(q);
+        const descMatch = s.description.toLowerCase().includes(q);
+        const reviewMatch = s.reviews.some(r => r.text.toLowerCase().includes(q));
+        if (!nameMatch && !descMatch && !reviewMatch) return false;
+      }
       return true;
     });
   }, [dbSpots, activeCategories, searchQuery, isModerator]);

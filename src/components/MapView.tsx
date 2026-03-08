@@ -158,8 +158,11 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
       const infoWindow = new google.maps.InfoWindow({
         content: `
           <div style="font-family:'Space Grotesk',sans-serif;padding:4px 0;">
-            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">${spot.name}</div>
+            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">
+              ${spot.hasOutlets ? '⚡ ' : ''}${spot.name}
+            </div>
             <div style="font-size:12px;color:#6b7280;margin-top:2px;">${spot.address}</div>
+            ${spot.avgSilenceLevel ? `<div style="font-size:11px;color:#3b6fd4;margin-top:3px;">🤫 Silence: ${spot.avgSilenceLevel.toFixed(1)}/5</div>` : ''}
             ${!isOfficial ? '<div style="font-size:11px;color:#9333ea;margin-top:4px;">👻 Unconfirmed</div>' : ''}
           </div>
         `,
