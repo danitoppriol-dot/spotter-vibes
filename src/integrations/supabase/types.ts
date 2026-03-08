@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      map_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          profile_user_id: string
+          rater_user_id: string
+          rating: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_user_id: string
+          rater_user_id: string
+          rating: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_user_id?: string
+          rater_user_id?: string
+          rating?: number
+        }
+        Relationships: []
+      }
       places: {
         Row: {
           address: string
@@ -21,6 +45,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          expires_at: string | null
           filters: Json | null
           google_maps_url: string | null
           id: string
@@ -41,6 +66,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          expires_at?: string | null
           filters?: Json | null
           google_maps_url?: string | null
           id?: string
@@ -61,6 +87,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          expires_at?: string | null
           filters?: Json | null
           google_maps_url?: string | null
           id?: string
