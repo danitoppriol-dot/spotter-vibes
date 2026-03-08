@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { LAYERS, MapLayer } from '@/lib/mockData';
-import { Mail, ArrowRight, Search, MapPin, Loader2, Camera, Upload, Clock } from 'lucide-react';
+import { Mail, ArrowRight, Search, MapPin, Loader2, Camera, Upload, Clock, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthDialog from '@/components/AuthDialog';
