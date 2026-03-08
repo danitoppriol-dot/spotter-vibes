@@ -79,6 +79,7 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
   const [savingToggle, setSavingToggle] = useState(false);
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
+  const countdown = useCountdown(spot?.expiresAt);
 
   useEffect(() => {
     if (!user || !spot) return;
