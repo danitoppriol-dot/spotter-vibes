@@ -42,7 +42,7 @@ const TrendingSpots = ({ spots, onSpotClick }: TrendingSpotsProps) => {
                 <div className="flex items-center gap-1.5">
                   <p className="truncate text-sm font-medium">{spot.name}</p>
                   {spot.hasOutlets && (
-                    <Zap className="h-3 w-3 shrink-0 text-yellow-500" title="Has power outlets" />
+                    <Zap className="h-3 w-3 shrink-0 text-secondary" />
                   )}
                   {spot.isOfficial ? (
                     <CheckCircle2 className="h-3 w-3 shrink-0 text-accent" />
