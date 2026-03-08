@@ -77,6 +77,8 @@ export interface Spot {
   googleMapsUrl?: string;
   filters?: Record<string, string>;
   expiresAt?: string | null;
+  hasOutlets?: boolean;
+  avgSilenceLevel?: number;
   reviews: Review[];
 }
 
@@ -86,6 +88,8 @@ export interface Review {
   rating: number;
   text: string;
   date: string;
+  hasOutlets?: boolean;
+  silenceLevel?: number;
 }
 
 export const VISIBILITY_THRESHOLD = 5;

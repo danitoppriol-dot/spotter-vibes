@@ -125,10 +125,16 @@ const Explore = () => {
   };
 
   const filteredSpots = useMemo(() => {
+    const q = searchQuery.toLowerCase();
     return dbSpots.filter((s) => {
       if (!isModerator && !s.isVisible) return false;
       if (!activeCategories.includes(s.category)) return false;
-      if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (q) {
+        const nameMatch = s.name.toLowerCase().includes(q);
+        const descMatch = s.description.toLowerCase().includes(q);
+        const reviewMatch = s.reviews.some(r => r.text.toLowerCase().includes(q));
+        if (!nameMatch && !descMatch && !reviewMatch) return false;
+      }
       return true;
     });
   }, [dbSpots, activeCategories, searchQuery, isModerator]);
