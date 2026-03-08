@@ -537,6 +537,21 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
                       <StarRating rating={review.rating} />
                     </div>
                     {review.text && <p className="text-sm text-foreground/70">{review.text}</p>}
+                    {isStudySpot && (
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {review.hasOutlets != null && (
+                          <span className="flex items-center gap-1">
+                            <Zap className={`h-3 w-3 ${review.hasOutlets ? 'text-secondary' : 'text-muted'}`} />
+                            {review.hasOutlets ? 'Outlets ✓' : 'No outlets'}
+                          </span>
+                        )}
+                        {review.silenceLevel != null && (
+                          <span className="flex items-center gap-1">
+                            <Volume2 className="h-3 w-3" /> Silence: {review.silenceLevel}/5
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground">{review.date}</p>
                   </motion.div>
                 ))
