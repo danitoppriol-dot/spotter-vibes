@@ -7,7 +7,7 @@ import AuthDialog from '@/components/AuthDialog';
 
 const Navbar = () => {
   const location = useLocation();
-  const { isLoggedIn, email, logout } = useAuth();
+  const { isLoggedIn, email, logout, isAdmin } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
