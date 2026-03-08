@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { LAYERS, MapLayer } from '@/lib/mockData';
-import { Mail, ArrowRight, Search, MapPin, Loader2, Camera, Upload, Clock } from 'lucide-react';
+import { Mail, ArrowRight, Search, MapPin, Loader2, Camera, Upload, Clock, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthDialog from '@/components/AuthDialog';
@@ -54,6 +54,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
   const [description, setDescription] = useState('');
   const [mapType, setMapType] = useState<'personal' | 'general' | 'both'>('both');
   const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({});
+  const [rating, setRating] = useState<number>(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isTemporary, setIsTemporary] = useState(false);
@@ -134,6 +135,11 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       return;
     }
 
+    if (rating < 1 || rating > 5) {
+      toast({ title: 'Rating required', description: 'Please give this spot a rating from 1 to 5.', variant: 'destructive' });
+      return;
+    }
+
     // Check questionnaire completeness
     const requiredFields = QUESTIONNAIRES[category as MapLayer] || [];
     const missing = requiredFields.filter(f => !questionnaire[f.id]);
@@ -162,7 +168,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       ? new Date(Date.now() + parseInt(expiryHours) * 60 * 60 * 1000).toISOString()
       : null;
 
-    const { error } = await supabase.from('places').insert({
+    const { data: placeData, error } = await supabase.from('places').insert({
       name: selectedPlace.name,
       category,
       lat: selectedPlace.lat,
@@ -176,14 +182,26 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       questionnaire: questionnaire,
       filters: questionnaire,
       expires_at: expiresAt,
-    } as any);
+    } as any).select('id').single();
 
     setIsSubmitting(false);
 
-    if (error) {
-      toast({ title: 'Error adding spot', description: error.message, variant: 'destructive' });
+    if (error || !placeData) {
+      toast({ title: 'Error adding spot', description: error?.message || 'Unknown error', variant: 'destructive' });
       return;
     }
+
+    // Insert the initial review with the user's rating
+    await supabase.from('reviews').insert({
+      place_id: (placeData as any).id,
+      user_id: user.id,
+      rating,
+      text: description || null,
+      has_outlets: questionnaire.outlets ? ['Many', 'Some'].includes(questionnaire.outlets) : null,
+      silence_level: questionnaire.noise_level
+        ? { Silent: 5, Quiet: 4, Moderate: 3, Loud: 1 }[questionnaire.noise_level] || null
+        : null,
+    } as any);
 
     toast({
       title: 'Spot submitted! 🎉',
@@ -201,6 +219,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
     setDescription('');
     setMapType('both');
     setQuestionnaire({});
+    setRating(0);
     setPhotoFile(null);
     setPhotoPreview(null);
     setIsTemporary(false);
@@ -324,6 +343,25 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Rating */}
+              <div className="space-y-2">
+                <Label>Your Rating *</Label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`h-7 w-7 ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/40'}`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Questionnaire */}
               {category && QUESTIONNAIRES[category as MapLayer]?.map((field) => (
                 <div key={field.id} className="space-y-2">
