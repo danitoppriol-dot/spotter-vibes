@@ -119,10 +119,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       toast({ title: 'Select a layer', description: 'Please choose a map layer for this spot.', variant: 'destructive' });
       return;
     }
-    if (!photoFile) {
-      toast({ title: 'Photo required', description: 'Please upload at least one photo of the spot.', variant: 'destructive' });
-      return;
-    }
+    // Photo is optional — no validation needed
 
     // Check questionnaire completeness
     const requiredFields = QUESTIONNAIRES[category as MapLayer] || [];
