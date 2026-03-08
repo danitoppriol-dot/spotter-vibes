@@ -28,6 +28,7 @@ const App = () => (
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/shared/:shareToken" element={<Profile />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
