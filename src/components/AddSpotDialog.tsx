@@ -168,7 +168,7 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       ? new Date(Date.now() + parseInt(expiryHours) * 60 * 60 * 1000).toISOString()
       : null;
 
-    const { error } = await supabase.from('places').insert({
+    const { data: placeData, error } = await supabase.from('places').insert({
       name: selectedPlace.name,
       category,
       lat: selectedPlace.lat,
@@ -182,14 +182,26 @@ const AddSpotDialog = ({ open, onOpenChange, onSpotAdded }: AddSpotDialogProps) 
       questionnaire: questionnaire,
       filters: questionnaire,
       expires_at: expiresAt,
-    } as any);
+    } as any).select('id').single();
 
     setIsSubmitting(false);
 
-    if (error) {
-      toast({ title: 'Error adding spot', description: error.message, variant: 'destructive' });
+    if (error || !placeData) {
+      toast({ title: 'Error adding spot', description: error?.message || 'Unknown error', variant: 'destructive' });
       return;
     }
+
+    // Insert the initial review with the user's rating
+    await supabase.from('reviews').insert({
+      place_id: (placeData as any).id,
+      user_id: user.id,
+      rating,
+      text: description || null,
+      has_outlets: questionnaire.outlets ? ['Many', 'Some'].includes(questionnaire.outlets) : null,
+      silence_level: questionnaire.noise_level
+        ? { Silent: 5, Quiet: 4, Moderate: 3, Loud: 1 }[questionnaire.noise_level] || null
+        : null,
+    } as any);
 
     toast({
       title: 'Spot submitted! 🎉',
