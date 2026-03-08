@@ -72,6 +72,21 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (mode === 'forgot') {
+      setIsSubmitting(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setIsSubmitting(false);
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Check your email! 📧', description: `Password reset link sent to ${email}.` });
+        onOpenChange(false);
+      }
+      return;
+    }
+
     if (mode === 'signup' && !isAllowedDomain(email)) {
       toast({
         title: 'University email required',
