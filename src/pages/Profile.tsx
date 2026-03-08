@@ -39,6 +39,9 @@ const Profile = () => {
   const [editingName, setEditingName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [activeTab, setActiveTab] = useState('saved');
+  const [mapTitle, setMapTitle] = useState('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [newMapTitle, setNewMapTitle] = useState('');
 
   useEffect(() => {
     if (!profileUserId && !shareToken) return;
