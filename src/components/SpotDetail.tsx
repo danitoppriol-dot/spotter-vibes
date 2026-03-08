@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Spot, CATEGORIES } from '@/lib/mockData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send } from 'lucide-react';
+import { Star, ThumbsUp, MapPin, TrendingUp, Clock, ExternalLink, Send, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
