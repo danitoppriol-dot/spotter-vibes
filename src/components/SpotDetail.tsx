@@ -113,6 +113,25 @@ const SpotDetail = ({ spot, open, onClose, onUpdate }: SpotDetailProps) => {
 
   const handleRecommend = async () => {
     if (!isLoggedIn || !user) { setAuthOpen(true); return; }
+
+    // Geofencing: must be within 500m
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+      );
+      const dist = getDistanceMeters(pos.coords.latitude, pos.coords.longitude, spot.lat, spot.lng);
+      if (dist > 500) {
+        toast({
+          title: 'Too far away 📍',
+          description: `You need to be within 500m to endorse. You're ${Math.round(dist)}m away.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    } catch {
+      // If geolocation fails, allow the endorse (graceful degradation)
+    }
+
     const { error } = await supabase.from('recommendations').insert({
       user_id: user.id,
       place_id: spot.id,
