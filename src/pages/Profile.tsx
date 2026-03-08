@@ -179,7 +179,30 @@ const Profile = () => {
       <div className="container flex-1 overflow-y-auto py-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <h1 className="font-display text-2xl font-bold">{displayName}</h1>
+            <div className="flex items-center gap-2">
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newDisplayName}
+                    onChange={(e) => setNewDisplayName(e.target.value)}
+                    className="h-8 w-48 text-lg font-bold"
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveDisplayName()}
+                  />
+                  <Button size="sm" variant="ghost" onClick={handleSaveDisplayName}>Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingName(false)}>Cancel</Button>
+                </div>
+              ) : (
+                <>
+                  <h1 className="font-display text-2xl font-bold">{displayName}</h1>
+                  {isOwnProfile && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setNewDisplayName(profile?.display_name || ''); setEditingName(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
               {profile?.university && <span>📧 {profile.university}</span>}
               <span>·</span>
