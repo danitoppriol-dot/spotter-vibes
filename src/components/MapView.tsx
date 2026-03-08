@@ -1,6 +1,5 @@
 /// <reference types="google.maps" />
 import { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 import { Spot, MapLayer } from '@/lib/mockData';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -10,7 +9,6 @@ const LAYER_COLORS: Record<MapLayer, string> = {
   outdoor: '#16a34a',
 };
 
-// Clean, light map style – Nordic inspired
 const LIGHT_MAP_STYLES: google.maps.MapTypeStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
@@ -33,7 +31,26 @@ interface MapViewProps {
 }
 
 let cachedApiKey: string | null = null;
-let loaderInstance: Loader | null = null;
+let mapsLoaded = false;
+
+async function loadGoogleMaps(apiKey: string) {
+  if (mapsLoaded) return;
+  
+  return new Promise<void>((resolve, reject) => {
+    if (window.google?.maps) {
+      mapsLoaded = true;
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=marker`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => { mapsLoaded = true; resolve(); };
+    script.onerror = () => reject(new Error('Failed to load Google Maps'));
+    document.head.appendChild(script);
+  });
+}
 
 const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,15 +78,7 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
 
         if (cancelled) return;
 
-        if (!loaderInstance) {
-          loaderInstance = new Loader({
-            apiKey: cachedApiKey,
-            version: 'weekly',
-          });
-        }
-
-        await (loaderInstance as any).importLibrary('maps');
-        await (loaderInstance as any).importLibrary('marker');
+        await loadGoogleMaps(cachedApiKey);
 
         if (cancelled || !containerRef.current) return;
 
