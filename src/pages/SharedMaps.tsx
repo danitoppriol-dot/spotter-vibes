@@ -87,7 +87,6 @@ const SharedMaps = () => {
 
     const result: PublicProfile[] = publicProfiles
       .map((p: any) => {
-      .map((p: any) => {
         const rData = ratingMap.get(p.user_id);
         return {
           user_id: p.user_id,
