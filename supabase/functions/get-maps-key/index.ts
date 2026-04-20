@@ -34,29 +34,10 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Verify the user is authenticated
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  // Public endpoint: map loads for logged-out visitors too.
+  // Abuse mitigated via per-IP rate limiting above; restrict the Google
+  // Maps API key by HTTP referrer in the GCP console.
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
-  );
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !userData?.user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
 
   const key = Deno.env.get('GOOGLE_MAPS_API_KEY');
   if (!key) {
