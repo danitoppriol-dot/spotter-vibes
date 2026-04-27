@@ -118,9 +118,7 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
     markersRef.current = [];
 
     spots.forEach((spot) => {
-      const isOutdoor = spot.category === 'outdoor';
-      // Outdoor spots are always shown at full opacity regardless of confirmations
-      const isOfficial = spot.isOfficial || isOutdoor;
+      const isOfficial = spot.isOfficial;
       const color = LAYER_COLORS[spot.category as MapLayer] || '#3b6fd4';
 
       const marker = new google.maps.Marker({
