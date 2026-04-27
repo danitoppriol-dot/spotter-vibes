@@ -118,7 +118,8 @@ const MapView = ({ spots, onSpotClick, center = [59.3293, 18.0686] }: MapViewPro
     markersRef.current = [];
 
     spots.forEach((spot) => {
-      const isOfficial = spot.isOfficial;
+      const isOutdoor = spot.category === 'outdoor';
+      const isOfficial = spot.isOfficial || isOutdoor;
       const color = LAYER_COLORS[spot.category as MapLayer] || '#3b6fd4';
 
       const marker = new google.maps.Marker({
